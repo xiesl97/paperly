@@ -162,12 +162,6 @@
         </header>
 
         <main>
-            <div id="digestModal" class="digest-modal-overlay" style="display:none;" onclick="if(event.target===this)closeDigestModal()">
-                <div class="digest-modal">
-                    <div id="digestModalContent"></div>
-                </div>
-            </div>
-
             <div class="date-picker-modal" id="datePickerModal">
                 <div class="date-picker-content">
                     <div class="date-picker-body">
@@ -256,5 +250,12 @@
     </button>
 
     <script src="js/app.js?v=1.0.1"></script>
+
+    <!-- Digest modal — direct child of body to avoid stacking-context issues -->
+    <div id="digestModal" class="digest-modal-overlay" style="display:none;" onclick="if(event.target===this)closeDigestModal()">
+        <div class="digest-modal">
+            <div id="digestModalContent"></div>
+        </div>
+    </div>
 </body>
 </html> 

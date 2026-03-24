@@ -1815,11 +1815,6 @@ function showPaperDetails(paper, paperIndex) {
       <p><strong>Date: </strong>${formatDate(paper.date)}</p>
       ${paper.published ? `<p><strong>Submitted: </strong>${new Date(paper.published).toUTCString().replace(' GMT', ' UTC')}</p>` : ''}
       ${paper.comment ? `<p><strong>Comment: </strong><span class="paper-comment">${paper.comment}</span></p>` : ''}
-      <button id="digestExcludeModalBtn"
-        class="digest-exclude-modal-btn ${digestExcludedPapers.has(paper.id) ? 'excluded' : ''}"
-        onclick="toggleDigestExcludeFromModal('${paper.id}')">
-        ${digestExcludedPapers.has(paper.id) ? '↩ Include in Digest' : '✕ Exclude from Digest'}
-      </button>
 
       <div class="ai-section">
         ${paper.summary ? `<h3>TL;DR</h3><p>${highlightedSummary}</p>` : ''}
@@ -1861,6 +1856,14 @@ function showPaperDetails(paper, paperIndex) {
         <div class="pdf-container">
           <iframe src="${paper.url.replace('abs', 'pdf')}" width="100%" height="800px" frameborder="0"></iframe>
         </div>
+      </div>
+
+      <div class="digest-exclude-modal-footer">
+        <button id="digestExcludeModalBtn"
+          class="digest-exclude-modal-btn ${digestExcludedPapers.has(paper.id) ? 'excluded' : ''}"
+          onclick="toggleDigestExcludeFromModal('${paper.id}')">
+          ${digestExcludedPapers.has(paper.id) ? '↩ Include in Digest' : '✕ Exclude from Digest'}
+        </button>
       </div>
     </div>
   `;
