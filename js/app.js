@@ -1609,12 +1609,70 @@ Return valid JSON only, no markdown, no extra text.`;
     paper.conclusion = aiData.conclusion || '';
 
     showPaperDetails(paper, currentPaperIndex + 1);
+
+    // Persist to data file in the background (no-op if no GitHub token)
+    writeAiToDataFile(paper).catch(e => console.warn('writeAiToDataFile:', e));
   } catch (e) {
     btn.textContent = 'Retry Generate';
     btn.disabled = false;
     errEl.textContent = `Error: ${e.message}`;
     console.error('AI generation failed:', e);
   }
+}
+
+async function writeAiToDataFile(paper) {
+  const token = localStorage.getItem('githubToken');
+  if (!token) return;
+
+  // Only plain-date files are writable this way (legacy AI-enhanced files are read-only)
+  if (!window.plainDates?.has(currentDate)) return;
+
+  const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
+  const filePath = `data/${currentDate}.jsonl`;
+  const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+
+  // Fetch current file to get content + SHA
+  const getRes = await fetch(`${apiUrl}?ref=${dataBranch}`, { headers });
+  if (!getRes.ok) throw new Error(`GitHub GET ${getRes.status}: ${await getRes.text()}`);
+  const fileData = await getRes.json();
+
+  // Decode base64 content, patch the matching line
+  const raw = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
+  const lines = raw.split('\n').filter(l => l.trim());
+  const patched = lines.map(line => {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.id === paper.id) {
+        obj.AI = {
+          tldr:       paper.summary,
+          motivation: paper.motivation,
+          method:     paper.method,
+          result:     paper.result,
+          conclusion: paper.conclusion
+        };
+      }
+      return JSON.stringify(obj);
+    } catch { return line; }
+  });
+  const newContent = btoa(unescape(encodeURIComponent(patched.join('\n') + '\n')));
+
+  // Write back
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      message: `AI: generated content for ${paper.id}`,
+      content: newContent,
+      sha: fileData.sha,
+      branch: dataBranch
+    })
+  });
+  if (!putRes.ok) throw new Error(`GitHub PUT ${putRes.status}: ${await putRes.text()}`);
 }
 
 function togglePromptSuffix() {

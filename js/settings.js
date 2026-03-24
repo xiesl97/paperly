@@ -12,9 +12,10 @@ function initSettings() {
 }
 
 function loadAiSettings() {
-  document.getElementById('aiBaseUrl').value  = localStorage.getItem('aiBaseUrl')   || '';
-  document.getElementById('aiApiKey').value   = localStorage.getItem('aiApiKey')    || '';
-  document.getElementById('aiModelName').value = localStorage.getItem('aiModelName') || '';
+  document.getElementById('aiBaseUrl').value   = localStorage.getItem('aiBaseUrl')    || '';
+  document.getElementById('aiApiKey').value    = localStorage.getItem('aiApiKey')     || '';
+  document.getElementById('aiModelName').value = localStorage.getItem('aiModelName')  || '';
+  document.getElementById('githubToken').value = localStorage.getItem('githubToken')  || '';
 }
 
 // 从localStorage加载关键词偏好
@@ -299,12 +300,14 @@ function saveSettings() {
   localStorage.setItem('preferredKeywords', JSON.stringify(keywords));
   localStorage.setItem('preferredAuthors', JSON.stringify(authors));
 
-  const aiBaseUrl   = document.getElementById('aiBaseUrl').value.trim();
-  const aiApiKey    = document.getElementById('aiApiKey').value.trim();
-  const aiModelName = document.getElementById('aiModelName').value.trim();
-  if (aiBaseUrl)   localStorage.setItem('aiBaseUrl',   aiBaseUrl);   else localStorage.removeItem('aiBaseUrl');
-  if (aiApiKey)    localStorage.setItem('aiApiKey',    aiApiKey);    else localStorage.removeItem('aiApiKey');
-  if (aiModelName) localStorage.setItem('aiModelName', aiModelName); else localStorage.removeItem('aiModelName');
+  const aiBaseUrl    = document.getElementById('aiBaseUrl').value.trim();
+  const aiApiKey     = document.getElementById('aiApiKey').value.trim();
+  const aiModelName  = document.getElementById('aiModelName').value.trim();
+  const githubToken  = document.getElementById('githubToken').value.trim();
+  if (aiBaseUrl)    localStorage.setItem('aiBaseUrl',    aiBaseUrl);    else localStorage.removeItem('aiBaseUrl');
+  if (aiApiKey)     localStorage.setItem('aiApiKey',     aiApiKey);     else localStorage.removeItem('aiApiKey');
+  if (aiModelName)  localStorage.setItem('aiModelName',  aiModelName);  else localStorage.removeItem('aiModelName');
+  if (githubToken)  localStorage.setItem('githubToken',  githubToken);  else localStorage.removeItem('githubToken');
   
   // 显示保存成功提示，添加成功图标
   showNotification('Settings saved successfully!', 'success');
@@ -327,9 +330,11 @@ function resetSettings() {
   document.getElementById('aiBaseUrl').value   = '';
   document.getElementById('aiApiKey').value    = '';
   document.getElementById('aiModelName').value = '';
+  document.getElementById('githubToken').value = '';
   localStorage.removeItem('aiBaseUrl');
   localStorage.removeItem('aiApiKey');
   localStorage.removeItem('aiModelName');
+  localStorage.removeItem('githubToken');
 
   showNotification('Settings reset to default!', 'info');
 }

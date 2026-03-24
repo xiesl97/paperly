@@ -149,6 +149,13 @@
                                 <label>Model Name</label>
                                 <input type="text" id="aiModelName" class="settings-input" placeholder="e.g. gpt-4o-mini, deepseek-chat (exact API model ID, not a nickname)" style="flex:1;margin-left:16px;">
                             </div>
+                            <div class="settings-item">
+                                <label style="white-space:nowrap;">GitHub Token</label>
+                                <div style="flex:1;margin-left:16px;">
+                                    <input type="password" id="githubToken" class="settings-input" placeholder="ghp_... (fine-grained token with repo Contents write)" style="width:100%;">
+                                    <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Optional. When set, generated AI content is written back to the data file on the <code>data</code> branch so it persists for everyone.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
