@@ -16,6 +16,8 @@ let previousActiveKeywords = null; // 文本搜索激活时，暂存之前的关
 let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作者激活集合
 let userTopics = []; // 用户自定义话题过滤标签
 let currentTopic = null; // 当前激活的话题过滤
+let lunrIndex = null; // lunr search index for topic filtering
+let lunrIdSet = null; // Set of matching paper IDs from last lunr query
 
 
 
@@ -209,6 +211,36 @@ function toggleAuthorFilter(author) {
   
   // 重新渲染论文列表
   renderPapers();
+}
+
+function buildLunrIndex(data) {
+  const docs = [];
+  Object.values(data).forEach(papers => {
+    papers.forEach(paper => {
+      docs.push({
+        id: paper.id,
+        title: paper.title || '',
+        summary: paper.summary || '',
+        tldr: paper.AI?.tldr || '',
+        motivation: paper.AI?.motivation || '',
+        method: paper.AI?.method || '',
+        result: paper.AI?.result || '',
+        conclusion: paper.AI?.conclusion || '',
+      });
+    });
+  });
+
+  lunrIndex = lunr(function () {
+    this.ref('id');
+    this.field('title', { boost: 10 });
+    this.field('summary', { boost: 5 });
+    this.field('tldr', { boost: 3 });
+    this.field('motivation');
+    this.field('method');
+    this.field('result');
+    this.field('conclusion');
+    docs.forEach(doc => this.add(doc));
+  });
 }
 
 // ── Topics row ──────────────────────────────────────────────────────────────
@@ -799,7 +831,8 @@ async function loadPapersByDate(date) {
     }
     
     paperData = parseJsonlData(text, date);
-    
+    buildLunrIndex(paperData);
+
     const categories = getAllCategories(paperData);
     
     renderCategoryFilter(categories);
@@ -1023,14 +1056,29 @@ function renderPapers() {
     papers = paperData[currentCategory];
   }
 
-  // 话题过滤：只保留标题或摘要中包含当前话题关键词的论文
+  // 话题过滤：使用 lunr 进行词干匹配
   if (currentTopic) {
-    const q = currentTopic.toLowerCase();
-    papers = papers.filter(p =>
-      (p.title || '').toLowerCase().includes(q) ||
-      (p.summary || '').toLowerCase().includes(q) ||
-      (p.details || '').toLowerCase().includes(q)
-    );
+    if (lunrIndex) {
+      try {
+        const results = lunrIndex.search(currentTopic);
+        const matchedIds = new Set(results.map(r => r.ref));
+        papers = papers.filter(p => matchedIds.has(p.id));
+      } catch (e) {
+        // lunr query parse error (e.g. special chars) — fall back to substring
+        const q = currentTopic.toLowerCase();
+        papers = papers.filter(p =>
+          (p.title || '').toLowerCase().includes(q) ||
+          (p.summary || '').toLowerCase().includes(q)
+        );
+      }
+    } else {
+      // lunr not ready yet — fall back to substring
+      const q = currentTopic.toLowerCase();
+      papers = papers.filter(p =>
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.summary || '').toLowerCase().includes(q)
+      );
+    }
   }
 
   // 创建匹配论文的集合
@@ -1645,7 +1693,8 @@ async function loadPapersByDateRange(startDate, endDate) {
     }
     
     paperData = allPaperData;
-    
+    buildLunrIndex(paperData);
+
     const categories = getAllCategories(paperData);
     
     renderCategoryFilter(categories);
