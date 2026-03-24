@@ -1533,13 +1533,14 @@ async function generateAiContent() {
   btn.textContent = 'Generating...';
   btn.disabled = true;
 
+  const promptSuffix = localStorage.getItem('aiPromptSuffix') || '';
   const prompt = `Analyze the following research paper abstract. Respond with a JSON object containing exactly these fields:
 "tldr": one concise sentence summarizing the paper
 "motivation": why this research was needed / what problem it solves
 "method": key technical approach or methodology
 "result": main results or findings
 "conclusion": broader impact or takeaway
-
+${promptSuffix ? `\nAdditional instructions: ${promptSuffix}` : ''}
 Abstract:
 ${paper.details}
 
@@ -1587,6 +1588,17 @@ Return valid JSON only, no markdown, no extra text.`;
     errEl.textContent = `Error: ${e.message}`;
     console.error('AI generation failed:', e);
   }
+}
+
+function togglePromptSuffix() {
+  const area = document.getElementById('promptSuffixArea');
+  if (area) area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+function savePromptSuffix() {
+  const val = document.getElementById('promptSuffixInput')?.value || '';
+  localStorage.setItem('aiPromptSuffix', val);
+  togglePromptSuffix();
 }
 
 function showPaperDetails(paper, paperIndex) {
@@ -1664,9 +1676,17 @@ function showPaperDetails(paper, paperIndex) {
           ${paper.result ? `<div class="paper-section"><h4>Result</h4><p>${highlightedResult}</p></div>` : ''}
           ${paper.conclusion ? `<div class="paper-section"><h4>Conclusion</h4><p>${highlightedConclusion}</p></div>` : ''}
         </div>
-        <button id="generateAiBtn" class="button ai-generate-btn" onclick="generateAiContent()">
-          ${paper.summary ? 'Regenerate AI Analysis' : 'Generate AI Analysis'}
-        </button>
+        <div class="ai-controls">
+          <button id="generateAiBtn" class="button primary ai-generate-btn" onclick="generateAiContent()">
+            ${paper.summary ? 'Regenerate' : 'Generate AI Analysis'}
+          </button>
+          <button class="button ai-prompt-edit-btn" onclick="togglePromptSuffix()" title="Customize prompt">Edit prompt</button>
+        </div>
+        <div id="promptSuffixArea" class="prompt-suffix-area" style="display:none;">
+          <p class="prompt-suffix-hint">Base prompt is fixed. Add extra instructions below (e.g. "Explain the method in 300 words"):</p>
+          <textarea id="promptSuffixInput" class="prompt-suffix-input" rows="3" placeholder="e.g. Use simple language suitable for a non-expert.">${localStorage.getItem('aiPromptSuffix') || ''}</textarea>
+          <button class="button ai-prompt-save-btn" onclick="savePromptSuffix()">Save</button>
+        </div>
         <p id="aiGenerateError" class="ai-generate-error"></p>
       </div>
       
