@@ -1435,7 +1435,15 @@ function showPaperDetails(paper, paperIndex) {
   if (activeKeywords.length > 0) modalTitleTerms.push(...activeKeywords);
   if (textSearchQuery && textSearchQuery.trim().length > 0) modalTitleTerms.push(textSearchQuery.trim());
 
-  const stems = paper._topicStems || [];
+  // Derive stems from the active topic via lunr's pipeline (reliable regardless of paper._topicStems)
+  let stems = paper._topicStems || [];
+  if (stems.length === 0 && currentTopic && lunrIndex) {
+    try {
+      stems = lunrIndex.pipeline.run(lunr.tokenizer(currentTopic)).map(t => t.toString());
+    } catch (e) {
+      stems = currentTopic ? [currentTopic] : [];
+    }
+  }
 
   function applyHighlights(text) {
     if (!text) return text;
