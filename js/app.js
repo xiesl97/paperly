@@ -1009,6 +1009,7 @@ function parseJsonlData(jsonlText, date) {
         result: paper.AI && paper.AI.result ? paper.AI.result : '',
         conclusion: paper.AI && paper.AI.conclusion ? paper.AI.conclusion : '',
         comment: paper.comment || '',
+        published: paper.published || '',
         code_url: paper.code_url || '',
         code_stars: paper.code_stars || 0,
         code_last_update: paper.code_last_update || ''
@@ -1774,6 +1775,7 @@ function showPaperDetails(paper, paperIndex) {
       <p><strong>Authors: </strong>${highlightedAuthors}</p>
       <p><strong>Categories: </strong>${categoryDisplay}</p>
       <p><strong>Date: </strong>${formatDate(paper.date)}</p>
+      ${paper.published ? `<p><strong>Submitted: </strong>${new Date(paper.published).toUTCString().replace(' GMT', ' UTC')}</p>` : ''}
       ${paper.comment ? `<p><strong>Comment: </strong><span class="paper-comment">${paper.comment}</span></p>` : ''}
       
       
