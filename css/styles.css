@@ -1443,7 +1443,7 @@ main {
   font-size: 13px;
   font-weight: 500;
   border: 1px solid var(--border-color);
-  background: var(--card-background);
+  background: var(--card-bg-color);
   color: var(--text-secondary);
   cursor: pointer;
   transition: var(--transition);
@@ -1818,7 +1818,7 @@ footer {
   padding: 20px;
 }
 .digest-modal {
-  background: var(--card-background);
+  background: var(--card-bg-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   width: 100%;
@@ -1877,7 +1877,7 @@ footer {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
-  background: var(--card-background);
+  background: var(--card-bg-color);
   user-select: none;
 }
 .digest-paper-card:hover { border-color: var(--primary-color); background: var(--background-hover); }
@@ -1925,7 +1925,7 @@ footer {
   padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  background: var(--card-background);
+  background: var(--card-bg-color);
   color: var(--text-color);
   font-family: inherit;
   font-size: 13px;
@@ -2730,6 +2730,16 @@ footer {
   top: -12px;
   left: -12px;
   z-index: 5;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.paper-index-badge.excluded {
+  background: #9ca3af;
+  box-shadow: none;
+}
+.paper-index-badge:hover {
+  opacity: 0.85;
 }
 
 /* Random paper indicator */

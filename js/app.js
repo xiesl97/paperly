@@ -1779,7 +1779,10 @@ function showPaperDetails(paper, paperIndex) {
   const highlightedTitle = applyHighlights(paper.title);
 
   // 在标题前添加索引号
-  modalTitle.innerHTML = paperIndex ? `<span class="paper-index-badge">${paperIndex}</span> ${highlightedTitle}` : highlightedTitle;
+  const isExcluded = digestExcludedPapers.has(paper.id);
+  modalTitle.innerHTML = paperIndex
+    ? `<button class="paper-index-badge ${isExcluded ? 'excluded' : ''}" data-pid="${paper.id}" onclick="toggleDigestExcludeFromModal('${paper.id}')" title="${isExcluded ? 'Include in digest' : 'Exclude from digest'}">${paperIndex}</button> ${highlightedTitle}`
+    : highlightedTitle;
 
   const abstractText = paper.details || '';
 
@@ -2452,12 +2455,19 @@ function toggleDigestExcludeFromModal(paperId) {
 }
 
 function syncDigestExcludeFooterBtn(paperId) {
-  const btn = document.getElementById('digestExcludeFooterBtn');
-  if (!btn) return;
   const exc = digestExcludedPapers.has(paperId);
-  btn.textContent = exc ? '↩ Include in Digest' : '✕ Exclude from Digest';
-  btn.classList.toggle('excluded', exc);
-  btn.onclick = () => toggleDigestExcludeFromModal(paperId);
+  const btn = document.getElementById('digestExcludeFooterBtn');
+  if (btn) {
+    btn.textContent = exc ? '↩ Include in Digest' : '✕ Exclude from Digest';
+    btn.classList.toggle('excluded', exc);
+    btn.onclick = () => toggleDigestExcludeFromModal(paperId);
+  }
+  // Sync the title badge in the modal
+  const badge = document.querySelector(`.paper-index-badge[data-pid="${paperId}"]`);
+  if (badge) {
+    badge.classList.toggle('excluded', exc);
+    badge.title = exc ? 'Include in digest' : 'Exclude from digest';
+  }
 }
 
 function updateDigestBadges() {
