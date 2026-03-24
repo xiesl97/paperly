@@ -220,12 +220,12 @@ function buildLunrIndex(data) {
       docs.push({
         id: paper.id,
         title: paper.title || '',
-        summary: paper.summary || '',
-        tldr: paper.AI?.tldr || '',
-        motivation: paper.AI?.motivation || '',
-        method: paper.AI?.method || '',
-        result: paper.AI?.result || '',
-        conclusion: paper.AI?.conclusion || '',
+        tldr: paper.summary || '',       // summary field holds AI tldr
+        details: paper.details || '',    // details holds original abstract
+        motivation: paper.motivation || '',
+        method: paper.method || '',
+        result: paper.result || '',
+        conclusion: paper.conclusion || '',
       });
     });
   });
@@ -233,8 +233,8 @@ function buildLunrIndex(data) {
   lunrIndex = lunr(function () {
     this.ref('id');
     this.field('title', { boost: 10 });
-    this.field('summary', { boost: 5 });
-    this.field('tldr', { boost: 3 });
+    this.field('tldr', { boost: 5 });
+    this.field('details', { boost: 3 });
     this.field('motivation');
     this.field('method');
     this.field('result');
