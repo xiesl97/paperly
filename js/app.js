@@ -1434,54 +1434,41 @@ function showPaperDetails(paper, paperIndex) {
   const modalTitleTerms = [];
   if (activeKeywords.length > 0) modalTitleTerms.push(...activeKeywords);
   if (textSearchQuery && textSearchQuery.trim().length > 0) modalTitleTerms.push(textSearchQuery.trim());
+
+  const stems = paper._topicStems || [];
+
+  function applyHighlights(text) {
+    if (!text) return text;
+    let t = stems.length > 0 ? highlightStemMatches(text, stems, 'keyword-highlight') : text;
+    return modalTitleTerms.length > 0 ? highlightMatches(t, modalTitleTerms, 'keyword-highlight') : t;
+  }
+
   // 高亮标题
-  const highlightedTitle = modalTitleTerms.length > 0 
-    ? highlightMatches(paper.title, modalTitleTerms, 'keyword-highlight') 
-    : paper.title;
-  
+  const highlightedTitle = applyHighlights(paper.title);
+
   // 在标题前添加索引号
   modalTitle.innerHTML = paperIndex ? `<span class="paper-index-badge">${paperIndex}</span> ${highlightedTitle}` : highlightedTitle;
-  
+
   const abstractText = paper.details || '';
-  
-  const categoryDisplay = paper.allCategories ? 
-    paper.allCategories.join(', ') : 
+
+  const categoryDisplay = paper.allCategories ?
+    paper.allCategories.join(', ') :
     paper.category;
-  
+
   // 高亮作者（作者过滤 + 文本搜索）
   const modalAuthorTerms = [];
   if (activeAuthors.length > 0) modalAuthorTerms.push(...activeAuthors);
   if (textSearchQuery && textSearchQuery.trim().length > 0) modalAuthorTerms.push(textSearchQuery.trim());
-  const highlightedAuthors = modalAuthorTerms.length > 0 
-    ? highlightMatches(paper.authors, modalAuthorTerms, 'author-highlight') 
+  const highlightedAuthors = modalAuthorTerms.length > 0
+    ? highlightMatches(paper.authors, modalAuthorTerms, 'author-highlight')
     : paper.authors;
-  
-  // 高亮摘要（关键词 + 文本搜索）
-  const highlightedSummary = modalTitleTerms.length > 0 
-    ? highlightMatches(paper.summary, modalTitleTerms, 'keyword-highlight') 
-    : paper.summary;
-  
-  // 高亮详情（Abstract/details）
-  const highlightedAbstract = modalTitleTerms.length > 0 
-    ? highlightMatches(abstractText, modalTitleTerms, 'keyword-highlight') 
-    : abstractText;
-  
-  // 高亮其他部分（如果存在且是摘要的一部分）
-  const highlightedMotivation = paper.motivation && modalTitleTerms.length > 0 
-    ? highlightMatches(paper.motivation, modalTitleTerms, 'keyword-highlight') 
-    : paper.motivation;
-  
-  const highlightedMethod = paper.method && modalTitleTerms.length > 0 
-    ? highlightMatches(paper.method, modalTitleTerms, 'keyword-highlight') 
-    : paper.method;
-  
-  const highlightedResult = paper.result && modalTitleTerms.length > 0 
-    ? highlightMatches(paper.result, modalTitleTerms, 'keyword-highlight') 
-    : paper.result;
-  
-  const highlightedConclusion = paper.conclusion && modalTitleTerms.length > 0 
-    ? highlightMatches(paper.conclusion, modalTitleTerms, 'keyword-highlight') 
-    : paper.conclusion;
+
+  const highlightedSummary   = applyHighlights(paper.summary);
+  const highlightedAbstract  = applyHighlights(abstractText);
+  const highlightedMotivation = applyHighlights(paper.motivation);
+  const highlightedMethod     = applyHighlights(paper.method);
+  const highlightedResult     = applyHighlights(paper.result);
+  const highlightedConclusion = applyHighlights(paper.conclusion);
   
   // 判断是否需要显示高亮说明
   const showHighlightLegend = activeKeywords.length > 0 || activeAuthors.length > 0;
