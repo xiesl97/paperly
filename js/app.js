@@ -291,7 +291,9 @@ function buildTopicData(topic, papers) {
         .sort((a, b) => b.count - a.count);
     } catch (e) { /* fall through to empty words */ }
   }
-  const selectedWords = new Set(words.map(w => w.word));
+  // Pre-select only words that exactly match one of the topic's own terms
+  const topicTerms = new Set(topic.toLowerCase().split(/\s+/).filter(Boolean));
+  const selectedWords = new Set(words.filter(w => topicTerms.has(w.word)).map(w => w.word));
   return { words, selectedWords };
 }
 
