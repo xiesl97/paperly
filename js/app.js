@@ -24,6 +24,31 @@ let lastDigestMarkdown = '';
 let digestView = 'setup'; // 'setup' | 'generating' | 'result'
 let digestState = { markdown: '', title: 'Research Digest', html: '', refHtml: '', selectedPapers: [] };
 
+function persistDigestState() {
+  try {
+    sessionStorage.setItem('digestView', digestView === 'generating' ? 'setup' : digestView);
+    sessionStorage.setItem('digestState', JSON.stringify({
+      markdown: digestState.markdown,
+      title: digestState.title,
+      html: digestState.html,
+      refHtml: digestState.refHtml,
+    }));
+    sessionStorage.setItem('digestExcluded', JSON.stringify([...digestExcludedPapers]));
+  } catch (_) {}
+}
+
+function restoreDigestState() {
+  try {
+    const savedView = sessionStorage.getItem('digestView');
+    const savedState = sessionStorage.getItem('digestState');
+    const savedExcluded = sessionStorage.getItem('digestExcluded');
+    if (savedView) digestView = savedView;
+    if (savedState) Object.assign(digestState, JSON.parse(savedState));
+    if (savedExcluded) digestExcludedPapers = new Set(JSON.parse(savedExcluded));
+    if (digestView === 'result') lastDigestMarkdown = digestState.markdown;
+  } catch (_) {}
+}
+
 
 
 // 加载用户的关键词设置
@@ -414,6 +439,8 @@ function removeTopic(keyword) {
 // ── End Topics row ───────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  restoreDigestState();
+  updateDigestNavBtn();
   initEventListeners();
 
   fetchGitHubStats();
@@ -2328,12 +2355,14 @@ function escapeHtml(str) {
 
 function showDigestSetup() {
   digestView = 'setup';
+  persistDigestState();
   renderDigestModalContent();
   updateDigestNavBtn();
 }
 
 function showDigestResult() {
   digestView = 'result';
+  persistDigestState();
   renderDigestModalContent();
   updateDigestNavBtn();
 }
@@ -2467,6 +2496,7 @@ async function generateDigest() {
   // Switch to generating view
   digestState.selectedPapers = selected;
   digestView = 'generating';
+  persistDigestState();
   renderDigestModalContent();
   updateDigestNavBtn();
 
@@ -2494,11 +2524,13 @@ async function generateDigest() {
     ).join('');
 
     digestView = 'result';
+    persistDigestState();
     updateDigestNavBtn();
     const modal = document.getElementById('digestModal');
     if (modal && modal.style.display !== 'none') renderDigestModalContent();
   } catch (e) {
     digestView = 'setup';
+    persistDigestState();
     updateDigestNavBtn();
     const modal = document.getElementById('digestModal');
     if (modal && modal.style.display !== 'none') {
@@ -2570,6 +2602,7 @@ function toggleDigestExclude(paperId, el) {
     el.querySelector('.card-idx-action').textContent = 'Include';
     el.title = 'Include in digest';
   }
+  persistDigestState();
 }
 
 function toggleDigestExcludeFromModal(paperId) {
@@ -2579,6 +2612,7 @@ function toggleDigestExcludeFromModal(paperId) {
   } else {
     digestExcludedPapers.add(paperId);
   }
+  persistDigestState();
   updateDigestBadges();
   syncDigestExcludeFooterBtn(paperId);
 }
