@@ -2834,13 +2834,24 @@ function _renderManageSubModal() {
       </div>`;
   }
 
+  // Capture input state before re-render (innerHTML destroys the old element)
+  const prevInput = document.getElementById('manageTopicInput');
+  const cursorPos = prevInput ? prevInput.selectionStart : null;
+  const inputHadFocus = prevInput !== null && prevInput === document.activeElement;
+
   content.innerHTML = addSection + subsSection + pendingSection +
     `<p class="sub-schedule-note">Digests generated server-side at 8am CET · Requires GitHub token in Settings</p>`;
 
-  // Restore input value and focus
+  // Restore input value, cursor position, and focus
   const input = document.getElementById('manageTopicInput');
-  if (input && _manageTopicInputValue) {
-    input.value = _manageTopicInputValue;
+  if (input) {
+    if (_manageTopicInputValue) input.value = _manageTopicInputValue;
+    if (inputHadFocus) {
+      input.focus();
+      if (cursorPos !== null) {
+        try { input.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
+      }
+    }
   }
 }
 
