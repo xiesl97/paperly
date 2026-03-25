@@ -1679,6 +1679,12 @@ function renderPapers() {
     
     container.appendChild(paperCard);
   });
+
+  // First render with data: trigger daily digest check
+  if (!window._dailyDigestChecked && Object.keys(paperData).length > 0) {
+    window._dailyDigestChecked = true;
+    setTimeout(checkAndShowDailyDigest, 500);
+  }
 }
 
 async function generateAiContent() {
@@ -2876,4 +2882,315 @@ function updateDigestBadges() {
     if (action) action.textContent = exc ? 'Include' : 'Exclude';
     badge.title = exc ? 'Include in digest' : 'Exclude from digest';
   });
+}
+
+// ── Topic Subscriptions ───────────────────────────────────────────────────────
+
+let _subTopics = new Set();
+let _subTopicWordData = new Map();
+
+function openSubscribeModal() {
+  const modal = document.getElementById('subscribeModal');
+  if (!modal) return;
+
+  _subTopics = new Set();
+  _subTopicWordData = new Map();
+
+  const existing = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
+  const unsubBtn = document.getElementById('subUnsubBtn');
+  const saveBtn = document.getElementById('subSaveBtn');
+
+  if (existing.length > 0) {
+    const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
+    existing.forEach(s => {
+      _subTopics.add(s.topic);
+      _subTopicWordData.set(s.topic, _buildSubTopicData(s.topic, allPapers, s.words || null));
+    });
+    if (unsubBtn) unsubBtn.style.display = '';
+    if (saveBtn) saveBtn.textContent = 'Save';
+  } else {
+    if (unsubBtn) unsubBtn.style.display = 'none';
+    if (saveBtn) saveBtn.textContent = 'Subscribe';
+  }
+
+  _renderSubTopicButtons();
+  _renderSubWordPicker();
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSubscribeModal() {
+  const modal = document.getElementById('subscribeModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function _buildSubTopicData(topic, papers, savedWordsList) {
+  let words = [];
+  if (lunrIndex) {
+    try {
+      const results = lunrIndex.search(topic);
+      const matchedIds = new Set(results.map(r => r.ref));
+      const allStems = new Set();
+      results.forEach(r => Object.keys(r.matchData.metadata).forEach(s => allStems.add(s)));
+      const matchedPapers = papers.filter(p => matchedIds.has(p.id));
+      const wordCounts = new Map();
+      matchedPapers.forEach(p => {
+        const text = [p.title, p.summary, p.details, p.motivation, p.method, p.result, p.conclusion]
+          .filter(Boolean).join(' ');
+        const wordsInPaper = new Set();
+        allStems.forEach(stem => {
+          const re = new RegExp(`\\b(${stem}\\w*)`, 'gi');
+          let m;
+          while ((m = re.exec(text)) !== null) wordsInPaper.add(m[1].toLowerCase());
+        });
+        wordsInPaper.forEach(w => wordCounts.set(w, (wordCounts.get(w) || 0) + 1));
+      });
+      words = [...wordCounts.entries()]
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count);
+    } catch (_) {}
+  }
+  let selectedWords;
+  if (savedWordsList && savedWordsList.length > 0) {
+    const saved = new Set(savedWordsList);
+    selectedWords = new Set(words.filter(w => saved.has(w.word)).map(w => w.word));
+  } else {
+    const topicTerms = new Set(topic.toLowerCase().split(/\s+/).filter(Boolean));
+    selectedWords = new Set(words.filter(w => topicTerms.has(w.word)).map(w => w.word));
+  }
+  return { words, selectedWords };
+}
+
+function _renderSubTopicButtons() {
+  const container = document.getElementById('subTopicTags');
+  if (!container) return;
+  container.innerHTML = '';
+  if (userTopics.length === 0) {
+    container.innerHTML = '<span class="sub-no-topics">No topics saved yet — add topics from the filter bar first.</span>';
+    return;
+  }
+  userTopics.forEach(topic => {
+    const btn = document.createElement('button');
+    btn.className = `topic-button ${_subTopics.has(topic) ? 'active' : ''}`;
+    btn.textContent = topic;
+    btn.addEventListener('click', () => _toggleSubTopic(topic));
+    container.appendChild(btn);
+  });
+}
+
+function _toggleSubTopic(topic) {
+  if (_subTopics.has(topic)) {
+    _subTopics.delete(topic);
+    _subTopicWordData.delete(topic);
+  } else {
+    _subTopics.add(topic);
+    const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
+    _subTopicWordData.set(topic, _buildSubTopicData(topic, allPapers, null));
+  }
+  _renderSubTopicButtons();
+  _renderSubWordPicker();
+}
+
+function _renderSubWordPicker() {
+  const row = document.getElementById('subWordPickerRow');
+  const container = document.getElementById('subWordPickerTags');
+  if (!row || !container) return;
+
+  if (_subTopics.size === 0) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  container.innerHTML = '';
+
+  _subTopics.forEach(topic => {
+    const data = _subTopicWordData.get(topic);
+    if (!data || data.words.length === 0) return;
+
+    const subRow = document.createElement('div');
+    subRow.className = 'topic-words-sub-row';
+    const label = document.createElement('span');
+    label.className = 'topic-words-sub-label';
+    label.textContent = topic;
+    subRow.appendChild(label);
+
+    const tagsDiv = document.createElement('div');
+    tagsDiv.className = 'topic-words-sub-tags';
+    data.words.forEach(({ word, count }) => {
+      const btn = document.createElement('button');
+      const isSelected = data.selectedWords.has(word);
+      btn.className = `topic-word-btn ${isSelected ? 'active' : ''}`;
+      btn.innerHTML = `${word} <span class="topic-word-count">${count}</span>`;
+      btn.addEventListener('click', () => {
+        if (data.selectedWords.has(word)) data.selectedWords.delete(word);
+        else data.selectedWords.add(word);
+        _renderSubWordPicker();
+      });
+      tagsDiv.appendChild(btn);
+    });
+    subRow.appendChild(tagsDiv);
+    container.appendChild(subRow);
+  });
+}
+
+async function saveSubscription() {
+  const token = localStorage.getItem('githubToken');
+  if (!token) {
+    alert('GitHub token not set. Go to Settings → GitHub Token so the server can generate digests for your topics.');
+    return;
+  }
+
+  const subscriptions = [..._subTopics].map(topic => {
+    const data = _subTopicWordData.get(topic);
+    return { topic, words: data ? [...data.selectedWords] : [] };
+  });
+  localStorage.setItem('topicSubscriptions', JSON.stringify(subscriptions));
+
+  const saveBtn = document.getElementById('subSaveBtn');
+  if (saveBtn) { saveBtn.textContent = 'Saving…'; saveBtn.disabled = true; }
+
+  try {
+    await _writeSubscriptionTopics(subscriptions.map(s => s.topic));
+    if (saveBtn) saveBtn.textContent = 'Saved!';
+    setTimeout(() => { closeSubscribeModal(); if (saveBtn) { saveBtn.textContent = 'Subscribe'; saveBtn.disabled = false; } }, 900);
+  } catch (e) {
+    alert(`Saved locally. Could not sync to data branch: ${e.message}`);
+    closeSubscribeModal();
+    if (saveBtn) { saveBtn.textContent = 'Subscribe'; saveBtn.disabled = false; }
+  }
+}
+
+function clearSubscription() {
+  if (!confirm('Remove all topic subscriptions?')) return;
+  localStorage.removeItem('topicSubscriptions');
+  const token = localStorage.getItem('githubToken');
+  if (token) _writeSubscriptionTopics([]).catch(() => {});
+  closeSubscribeModal();
+}
+
+async function _writeSubscriptionTopics(topics) {
+  const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
+  const token = localStorage.getItem('githubToken');
+  const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/subscription-topics.json`;
+  const headers = { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+
+  let sha = null;
+  let existing = [];
+  const getRes = await fetch(`${apiUrl}?ref=${dataBranch}`, { headers, cache: 'no-store' });
+  if (getRes.ok) {
+    const f = await getRes.json();
+    sha = f.sha;
+    try { existing = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(f.content.replace(/\n/g, '')), c => c.charCodeAt(0)))); } catch (_) {}
+  }
+
+  // Merge with existing (other users' topics stay)
+  const merged = [...new Set([...existing, ...topics])];
+  const newJson = JSON.stringify(merged, null, 2);
+  const encoded = new TextEncoder().encode(newJson);
+  let binary = '';
+  for (let i = 0; i < encoded.length; i++) binary += String.fromCharCode(encoded[i]);
+  const body = { message: 'subscription: update topics', content: btoa(binary), branch: dataBranch };
+  if (sha) body.sha = sha;
+
+  const putRes = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+  if (!putRes.ok) throw new Error(`GitHub API ${putRes.status}`);
+}
+
+// ── Daily digest auto-show ────────────────────────────────────────────────────
+
+let _currentDailyDigests = [];
+let _currentDailyDigestIdx = 0;
+
+async function checkAndShowDailyDigest() {
+  const subs = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
+  if (!subs.length) return;
+
+  const now = new Date();
+  const today = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+  if (localStorage.getItem('dailyDigestShownDate') === today) return;
+  if (now.getHours() < 8) return;
+
+  const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
+  const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${dataBranch}/daily-digests/${today}.json`;
+
+  let allDigests = [];
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return; // Not generated yet — try again next load
+    allDigests = await res.json();
+  } catch (_) { return; }
+
+  const subTopicNames = new Set(subs.map(s => s.topic));
+  const mine = allDigests.filter(d => subTopicNames.has(d.topic));
+  if (!mine.length) return;
+
+  mine.forEach(d => {
+    const sub = subs.find(s => s.topic === d.topic);
+    d.words = sub?.words || [];
+  });
+
+  localStorage.setItem('dailyDigestShownDate', today);
+  _openDailyDigestModal(mine);
+}
+
+function _openDailyDigestModal(digests) {
+  _currentDailyDigests = digests;
+  _currentDailyDigestIdx = 0;
+  _renderDailyDigestModal();
+  const modal = document.getElementById('dailyDigestModal');
+  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+
+function closeDailyDigestModal() {
+  const modal = document.getElementById('dailyDigestModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function navigateDailyDigest(delta) {
+  const next = _currentDailyDigestIdx + delta;
+  if (next < 0 || next >= _currentDailyDigests.length) return;
+  _currentDailyDigestIdx = next;
+  _renderDailyDigestModal();
+}
+
+function _renderDailyDigestModal() {
+  const content = document.getElementById('dailyDigestModalContent');
+  if (!content) return;
+
+  const d = _currentDailyDigests[_currentDailyDigestIdx];
+  const total = _currentDailyDigests.length;
+  const idx = _currentDailyDigestIdx;
+
+  const formattedDate = new Date((d.date || new Date().toLocaleDateString('en-CA')) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const wordsLabel = d.words?.length ? d.words.slice(0, 6).join(', ') : d.topic;
+  const titleLabel = `Daily Digest · ${formattedDate} · ${wordsLabel}`;
+
+  content.innerHTML = `
+    <div class="daily-digest-header">
+      <div class="daily-digest-title-area">
+        <div class="daily-digest-label">${escapeHtml(titleLabel)}</div>
+        <div class="daily-digest-meta">${d.paperCount || 0} papers · topic: ${escapeHtml(d.topic)}</div>
+      </div>
+      <button class="digest-close-btn" onclick="closeDailyDigestModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="daily-digest-body">
+      ${digestMarkdownToHtml(d.markdown || '')}
+    </div>
+    <div class="daily-digest-footer">
+      <span class="daily-digest-count">${idx + 1} / ${total}</span>
+      <div class="daily-digest-nav">
+        <button class="digest-view-nav-btn button" onclick="navigateDailyDigest(-1)" ${idx === 0 ? 'disabled' : ''}>← Prev</button>
+        <button class="digest-view-nav-btn button" onclick="navigateDailyDigest(1)" ${idx === total - 1 ? 'disabled' : ''}>Next →</button>
+      </div>
+    </div>`;
+
+  // Keyboard nav
+  document.onkeydown = (e) => {
+    if (document.getElementById('dailyDigestModal')?.style.display === 'none') return;
+    if (e.key === 'ArrowLeft') navigateDailyDigest(-1);
+    if (e.key === 'ArrowRight') navigateDailyDigest(1);
+    if (e.key === 'Escape') closeDailyDigestModal();
+  };
 }
