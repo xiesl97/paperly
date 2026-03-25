@@ -16,6 +16,50 @@ function loadAiSettings() {
   document.getElementById('aiApiKey').value    = localStorage.getItem('aiApiKey')     || '';
   document.getElementById('aiModelName').value = localStorage.getItem('aiModelName')  || '';
   document.getElementById('githubToken').value = localStorage.getItem('githubToken')  || '';
+
+  // Lock AI fields if already configured
+  const hasAi = !!(localStorage.getItem('aiApiKey') || localStorage.getItem('aiBaseUrl') || localStorage.getItem('aiModelName'));
+  setAiFieldsLocked(hasAi);
+
+  // GitHub token: disabled for visitors (no token), locked if already set
+  const hasToken = !!localStorage.getItem('githubToken');
+  if (hasToken) {
+    setGithubFieldState('locked');
+  } else {
+    setGithubFieldState('visitor');
+  }
+}
+
+function setAiFieldsLocked(locked) {
+  ['aiBaseUrl', 'aiApiKey', 'aiModelName'].forEach(id => {
+    const el = document.getElementById(id);
+    el.readOnly = locked;
+    el.style.opacity = locked ? '0.7' : '';
+    el.style.cursor = locked ? 'default' : '';
+  });
+  document.getElementById('aiUpdateRow').style.display = locked ? '' : 'none';
+}
+
+// state: 'editable' | 'locked' | 'visitor'
+function setGithubFieldState(state) {
+  const el = document.getElementById('githubToken');
+  const updateBtn = document.getElementById('updateGithubBtn');
+  const visitorNote = document.getElementById('githubVisitorNote');
+
+  el.readOnly = state === 'locked';
+  el.disabled = state === 'visitor';
+  el.style.opacity = state !== 'editable' ? '0.7' : '';
+  el.style.cursor = state === 'locked' ? 'default' : '';
+  updateBtn.style.display = state === 'locked' ? '' : 'none';
+  visitorNote.style.display = state === 'visitor' ? '' : 'none';
+}
+
+function unlockAiFields() {
+  setAiFieldsLocked(false);
+}
+
+function unlockGithubField() {
+  setGithubFieldState('editable');
 }
 
 // 从localStorage加载关键词偏好
@@ -279,37 +323,74 @@ function initEventListeners() {
   resetSettingsButton.addEventListener('click', resetSettings);
 }
 
-// 保存设置
+// 保存设置 — shows confirmation modal for credentials
 function saveSettings() {
-  // 获取所有选中的关键词
+  // Always save keywords/authors immediately (non-sensitive)
   const keywordTags = document.getElementById('selectedKeywords').querySelectorAll('.category-button');
   const keywords = [];
-  keywordTags.forEach(tag => {
-    const keywordName = tag.textContent.trim().replace('×', '').trim();
-    keywords.push(keywordName);
-  });
-  
-  // 获取所有选中的作者
+  keywordTags.forEach(tag => keywords.push(tag.textContent.trim().replace('×', '').trim()));
+
   const authorTags = document.getElementById('selectedAuthors').querySelectorAll('.category-button');
   const authors = [];
-  authorTags.forEach(tag => {
-    const authorName = tag.textContent.trim().replace('×', '').trim();
-    authors.push(authorName);
-  });
-  
+  authorTags.forEach(tag => authors.push(tag.textContent.trim().replace('×', '').trim()));
+
   localStorage.setItem('preferredKeywords', JSON.stringify(keywords));
   localStorage.setItem('preferredAuthors', JSON.stringify(authors));
 
-  const aiBaseUrl    = document.getElementById('aiBaseUrl').value.trim();
-  const aiApiKey     = document.getElementById('aiApiKey').value.trim();
-  const aiModelName  = document.getElementById('aiModelName').value.trim();
-  const githubToken  = document.getElementById('githubToken').value.trim();
-  if (aiBaseUrl)    localStorage.setItem('aiBaseUrl',    aiBaseUrl);    else localStorage.removeItem('aiBaseUrl');
-  if (aiApiKey)     localStorage.setItem('aiApiKey',     aiApiKey);     else localStorage.removeItem('aiApiKey');
-  if (aiModelName)  localStorage.setItem('aiModelName',  aiModelName);  else localStorage.removeItem('aiModelName');
-  if (githubToken)  localStorage.setItem('githubToken',  githubToken);  else localStorage.removeItem('githubToken');
-  
-  // 显示保存成功提示，添加成功图标
+  // Check if any credential fields are being edited (not locked/disabled)
+  const aiBaseUrl   = document.getElementById('aiBaseUrl');
+  const aiApiKey    = document.getElementById('aiApiKey');
+  const aiModelName = document.getElementById('aiModelName');
+  const githubToken = document.getElementById('githubToken');
+
+  const aiEditing = !aiBaseUrl.readOnly || !aiApiKey.readOnly || !aiModelName.readOnly;
+  const githubEditing = !githubToken.readOnly && !githubToken.disabled;
+
+  if (!aiEditing && !githubEditing) {
+    showNotification('Settings saved successfully!', 'success');
+    return;
+  }
+
+  // Build confirmation summary
+  const lines = [];
+  if (aiEditing) {
+    if (aiBaseUrl.value.trim())   lines.push(`API Base URL: ${aiBaseUrl.value.trim()}`);
+    if (aiApiKey.value.trim())    lines.push(`API Key: ${'•'.repeat(Math.min(aiApiKey.value.trim().length, 12))}`);
+    if (aiModelName.value.trim()) lines.push(`Model: ${aiModelName.value.trim()}`);
+  }
+  if (githubEditing && githubToken.value.trim()) {
+    lines.push(`GitHub Token: ${'•'.repeat(Math.min(githubToken.value.trim().length, 12))}`);
+  }
+
+  if (lines.length === 0) {
+    // Credentials cleared — save directly
+    confirmSaveSettings();
+    return;
+  }
+
+  document.getElementById('saveConfirmDetails').innerHTML = lines.join('<br>');
+  document.getElementById('saveConfirmModal').style.display = 'flex';
+}
+
+function confirmSaveSettings() {
+  document.getElementById('saveConfirmModal').style.display = 'none';
+
+  const aiBaseUrl   = document.getElementById('aiBaseUrl').value.trim();
+  const aiApiKey    = document.getElementById('aiApiKey').value.trim();
+  const aiModelName = document.getElementById('aiModelName').value.trim();
+  const githubToken = document.getElementById('githubToken').value.trim();
+
+  if (aiBaseUrl)   localStorage.setItem('aiBaseUrl',   aiBaseUrl);   else localStorage.removeItem('aiBaseUrl');
+  if (aiApiKey)    localStorage.setItem('aiApiKey',    aiApiKey);    else localStorage.removeItem('aiApiKey');
+  if (aiModelName) localStorage.setItem('aiModelName', aiModelName); else localStorage.removeItem('aiModelName');
+  if (githubToken) localStorage.setItem('githubToken', githubToken); else localStorage.removeItem('githubToken');
+
+  // Re-lock fields after saving
+  const hasAi = !!(aiBaseUrl || aiApiKey || aiModelName);
+  setAiFieldsLocked(hasAi);
+  if (githubToken) setGithubFieldState('locked');
+  else setGithubFieldState('visitor');
+
   showNotification('Settings saved successfully!', 'success');
 }
 
@@ -335,6 +416,9 @@ function resetSettings() {
   localStorage.removeItem('aiApiKey');
   localStorage.removeItem('aiModelName');
   localStorage.removeItem('githubToken');
+
+  setAiFieldsLocked(false);
+  setGithubFieldState('visitor');
 
   showNotification('Settings reset to default!', 'info');
 }

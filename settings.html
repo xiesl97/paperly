@@ -149,11 +149,30 @@
                                 <label>Model Name</label>
                                 <input type="text" id="aiModelName" class="settings-input" placeholder="e.g. gpt-4o-mini, deepseek-chat (exact API model ID, not a nickname)" style="flex:1;margin-left:16px;">
                             </div>
+                            <div class="settings-item" id="aiUpdateRow" style="display:none;">
+                                <label></label>
+                                <button id="updateAiBtn" class="button" style="margin-left:16px;" onclick="unlockAiFields()">Update AI Settings</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2 class="keyword-section-title">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 11.9 13 12.5 13 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" fill="currentColor"/>
+                            </svg>
+                            GitHub Integration
+                        </h2>
+                        <div class="settings-card">
                             <div class="settings-item">
                                 <label style="white-space:nowrap;">GitHub Token</label>
                                 <div style="flex:1;margin-left:16px;">
-                                    <input type="password" id="githubToken" class="settings-input" placeholder="ghp_... (fine-grained token with repo Contents write)" style="width:100%;">
-                                    <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Optional. When set, generated AI content is written back to the data file on the <code>data</code> branch so it persists for everyone.</p>
+                                    <div style="display:flex;gap:8px;align-items:center;">
+                                        <input type="password" id="githubToken" class="settings-input" placeholder="ghp_... (fine-grained token with repo Contents write)" style="flex:1;">
+                                        <button id="updateGithubBtn" class="button" style="display:none;white-space:nowrap;" onclick="unlockGithubField()">Update</button>
+                                    </div>
+                                    <p id="githubVisitorNote" style="display:none;font-size:12px;color:#f59e0b;margin-top:6px;">GitHub token is not available in visitor mode. Write access to the repository is required.</p>
+                                    <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">When set, generated AI content is written back to the data file on the <code>data</code> branch so it persists for everyone.</p>
                                 </div>
                             </div>
                         </div>
@@ -162,6 +181,19 @@
                 <div class="settings-actions">
                     <button id="resetSettings" class="button">Reset to Default</button>
                     <button id="saveSettings" class="button primary">Save Settings</button>
+                </div>
+
+                <!-- Save confirmation modal -->
+                <div id="saveConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10000;display:none;align-items:center;justify-content:center;">
+                    <div style="background:var(--card-bg-color);border:1px solid var(--border-color);border-radius:12px;padding:28px 32px 24px;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+                        <h3 style="margin:0 0 10px;font-size:16px;font-weight:700;">Save credentials?</h3>
+                        <p style="margin:0 0 12px;font-size:14px;color:var(--text-secondary);line-height:1.6;">The following will be stored in your browser's local storage:</p>
+                        <div id="saveConfirmDetails" style="background:var(--background-hover);border-radius:8px;padding:10px 14px;font-size:13px;line-height:1.8;margin-bottom:16px;"></div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="confirmSaveSettings()" class="button primary" style="flex:1;">Confirm Save</button>
+                            <button onclick="document.getElementById('saveConfirmModal').style.display='none'" class="button" style="flex:1;">Cancel</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>

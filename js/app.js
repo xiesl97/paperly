@@ -547,11 +547,8 @@ function showConfigRequiredModal(type) {
   } else if (type === 'save') {
     content.innerHTML = `
       <h3>Saving is not available for visitors</h3>
-      <p>Persisting AI-generated content back to the data file requires a GitHub token configured in Settings.</p>
-      <p>As a visitor, AI analysis still works locally — results are shown in the paper modal but not saved to the shared dataset.</p>
-      <div class="config-required-actions">
-        <a href="settings.html">Go to Settings</a>
-      </div>`;
+      <p>Persisting AI-generated content back to the data file requires a GitHub token with write access to the repository.</p>
+      <p>As a visitor, AI analysis still works locally — results are shown in the paper modal but not saved to the shared dataset.</p>`;
   }
 
   overlay.style.display = 'flex';
