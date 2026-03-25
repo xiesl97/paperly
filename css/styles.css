@@ -3163,17 +3163,31 @@ footer {
 .digest-entry {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 28px 32px 32px;
+  padding: 0 0 32px;
   background: var(--card-bg-color);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 .digest-entry-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
   gap: 12px;
+  padding: 14px 24px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
+.digest-entry-title,
+.digest-entry-title-input,
+.digest-article,
+.digest-references {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+.digest-entry-title { padding-top: 20px; }
 .digest-entry-meta {
   display: flex;
   align-items: center;
