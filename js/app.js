@@ -2309,9 +2309,18 @@ function toggleDigestPaperInModal(paperId) {
   } else {
     digestExcludedPapers.add(paperId);
   }
-  // Re-render paper cards and update count
+  // Re-render paper cards, preserving expanded state
   const grid = document.getElementById('digestPapersGrid');
-  if (grid) grid.innerHTML = renderDigestPaperCards();
+  if (grid) {
+    const wasExpanded = document.getElementById('digestHiddenCards')?.style.display !== 'none';
+    grid.innerHTML = renderDigestPaperCards();
+    if (wasExpanded) {
+      const hidden = document.getElementById('digestHiddenCards');
+      const btn = document.getElementById('digestExpandBtn');
+      if (hidden) hidden.style.display = 'contents';
+      if (btn) btn.textContent = 'Show fewer ▴';
+    }
+  }
   const selected = currentFilteredPapers.filter(p => !digestExcludedPapers.has(p.id));
   const countEl = document.getElementById('digestCount');
   if (countEl) countEl.textContent = `${selected.length} selected`;
