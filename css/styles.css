@@ -3470,6 +3470,105 @@ footer {
   outline: none;
 }
 .manage-topic-input:focus { border-color: var(--primary-color); }
+/* Manage topic cards */
+.manage-topic-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.manage-topic-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.manage-topic-card.active { border-color: var(--primary-color); }
+.manage-topic-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.manage-topic-card-name {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  padding: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.manage-topic-card-name:hover { color: var(--primary-color); }
+.manage-topic-card-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.topic-card-word {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.topic-card-word-more {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-secondary);
+}
+.manage-no-words {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+/* Sub-words under add-topic input */
+.manage-new-words {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+/* Pending badge */
+.manage-pending-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 2px 7px;
+  border-radius: 8px;
+  margin-left: 6px;
+}
+/* Inline topic badge in daily digest date line */
+.daily-topic-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #ede9fe;
+  color: #6d28d9;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+/* Daily digest save button */
+.daily-save-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+/* Daily digest references */
+.daily-digest-refs {
+  margin-top: 24px;
+}
 
 /* ── Daily digest modal ───────────────────────────────────────────── */
 .daily-digest-modal {

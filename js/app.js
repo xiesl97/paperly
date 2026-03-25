@@ -2554,8 +2554,13 @@ let _dailyDigests = null; // null=not fetched, []=empty, [...]=content
 let _dailyDigestIdx = 0;
 let _dailyDigestFetching = false;
 let _manageSubs = [];
+let _managePendingTopics = [];
 let _manageActiveTopicForWords = null;
 let _manageWordData = new Map();
+let _manageNewTopicData = null;
+let _manageNewTopicWords = new Set();
+let _manageTopicInputValue = '';
+let _manageInputTimer = null;
 
 function openDailyDigestModal() {
   const modal = document.getElementById('dailyDigestModal');
@@ -2689,23 +2694,34 @@ function _renderDailyDigestModal() {
     `<button class="daily-tab ${i === _dailyDigestIdx ? 'active' : ''}" onclick="_switchDailyTab(${i})">${escapeHtml(dig.topic)}</button>`
   ).join('');
 
-  const wordsLabel = d.words?.length ? d.words.slice(0, 6).join(' · ') : '';
+  const wordsBadge = d.words?.length
+    ? `<span class="daily-topic-badge">${escapeHtml(d.words.slice(0, 4).join(' · '))}${d.words.length > 4 ? ` +${d.words.length - 4}` : ''}</span>`
+    : '';
+
+  const refsHtml = d.papers?.length
+    ? d.papers.map((p, i) =>
+        `<li id="ref-${i + 1}"><a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener">${escapeHtml(p.title || `Paper ${i + 1}`)}</a>` +
+        (p.authors ? `<br><span class="digest-ref-meta">${escapeHtml(formatAuthorsShort(p.authors))}</span>` : '') +
+        `</li>`
+      ).join('')
+    : '';
 
   content.innerHTML = `
     <div class="daily-digest-header">
       <div class="daily-digest-title-area">
-        <div class="daily-digest-label">Daily Digest · ${formattedDate}</div>
+        <div class="daily-digest-label">Daily Digest · ${formattedDate}${wordsBadge ? ' ' + wordsBadge : ''}</div>
         <div class="daily-digest-tabs">${tabs}</div>
       </div>
       ${closeBtn}
     </div>
     <div class="daily-digest-body">
-      ${wordsLabel ? `<div class="daily-digest-words">${escapeHtml(wordsLabel)}</div>` : ''}
       ${digestMarkdownToHtml(d.markdown || '')}
+      ${refsHtml ? `<div class="digest-references daily-digest-refs"><h3>References</h3><ol>${refsHtml}</ol></div>` : ''}
     </div>
     <div class="daily-digest-footer">
       ${manageBtn}
       <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        <button class="button daily-save-btn" onclick="_saveDailyDigest()">Save</button>
         <button class="digest-view-nav-btn button" onclick="_switchDailyTab(${_dailyDigestIdx - 1})" ${_dailyDigestIdx === 0 ? 'disabled' : ''}>← Prev</button>
         <span class="daily-digest-count">${_dailyDigestIdx + 1} / ${total}</span>
         <button class="digest-view-nav-btn button" onclick="_switchDailyTab(${_dailyDigestIdx + 1})" ${_dailyDigestIdx === total - 1 ? 'disabled' : ''}>Next →</button>
@@ -2725,6 +2741,14 @@ function _switchDailyTab(idx) {
   if (idx < 0 || idx >= (_dailyDigests?.length || 0)) return;
   _dailyDigestIdx = idx;
   _renderDailyDigestModal();
+}
+
+function _saveDailyDigest() {
+  const d = _dailyDigests?.[_dailyDigestIdx];
+  if (!d) return;
+  saveDigest(d.markdown, d.papers || [], d.topic);
+  const btn = document.querySelector('.daily-save-btn');
+  if (btn) { btn.textContent = 'Saved!'; setTimeout(() => { if (btn) btn.textContent = 'Save'; }, 2000); }
 }
 
 // ── Auto-show on first load ───────────────────────────────────────────────────
@@ -2750,8 +2774,12 @@ function openManageSubModal() {
   const modal = document.getElementById('manageSubModal');
   if (!modal) return;
   _manageSubs = JSON.parse(JSON.stringify(JSON.parse(localStorage.getItem('topicSubscriptions') || '[]')));
+  _managePendingTopics = [];
   _manageWordData = new Map();
   _manageActiveTopicForWords = null;
+  _manageNewTopicData = null;
+  _manageNewTopicWords = new Set();
+  _manageTopicInputValue = '';
   const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
   _manageSubs.forEach(s => {
     _manageWordData.set(s.topic, _buildSubTopicData(s.topic, allPapers, s.words || null));
@@ -2769,43 +2797,80 @@ function _renderManageSubModal() {
   const content = document.getElementById('manageSubContent');
   if (!content) return;
 
-  const chips = _manageSubs.map((s, i) => `
-    <div class="manage-sub-chip">
-      <button class="manage-chip-topic ${_manageActiveTopicForWords === s.topic ? 'active' : ''}"
-        onclick="_selectManageTopicForWords('${s.topic.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">${escapeHtml(s.topic)}</button>
-      <button class="manage-chip-remove" onclick="_removeManageSub(${i})" title="Remove">×</button>
-    </div>`).join('');
+  // Add topic section (always at top)
+  const newWordBtns = _manageNewTopicData?.words?.slice(0, 24).map(({ word }) => {
+    const sel = _manageNewTopicWords.has(word);
+    return `<button class="topic-word-btn ${sel ? 'active' : ''}" onclick="_toggleNewTopicWord('${word.replace(/'/g, "\\'")}')">${escapeHtml(word)}</button>`;
+  }).join('') || '';
 
-  let wordPickerHtml = '';
-  if (_manageActiveTopicForWords) {
-    const data = _manageWordData.get(_manageActiveTopicForWords);
-    if (data && data.words.length > 0) {
-      const wordBtns = data.words.map(({ word }) => {
-        const isSelected = data.selectedWords.has(word);
-        return `<button class="topic-word-btn ${isSelected ? 'active' : ''}"
-          onclick="_toggleManageWord('${_manageActiveTopicForWords.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${word}')">${escapeHtml(word)}</button>`;
-      }).join('');
-      wordPickerHtml = `<div class="manage-word-picker">
-        <span class="topic-words-sub-label">Words for "${escapeHtml(_manageActiveTopicForWords)}" (click to toggle)</span>
-        <div class="topic-words-sub-tags">${wordBtns}</div>
-      </div>`;
-    }
-  }
-
-  content.innerHTML = `
-    <div class="manage-sub-section">
-      <label class="subscribe-label">Subscribed topics ${_manageSubs.length ? `<span style="font-weight:400;color:var(--text-secondary)">(click a topic to edit its filter words)</span>` : ''}</label>
-      ${_manageSubs.length ? `<div class="manage-chips">${chips}</div>${wordPickerHtml}` : '<p class="sub-no-topics">No topics yet.</p>'}
-    </div>
+  const addSection = `
     <div class="manage-sub-section">
       <label class="subscribe-label">Add topic</label>
       <div class="manage-add-row">
         <input id="manageTopicInput" type="text" class="manage-topic-input" placeholder="e.g. diffusion model"
+          oninput="_onManageTopicInput(this.value)"
           onkeydown="if(event.key==='Enter')_addManageTopic()">
         <button class="button primary" onclick="_addManageTopic()">Add</button>
       </div>
-    </div>
-    <p class="sub-schedule-note">Digests generated server-side at 8am CET · Requires GitHub token in Settings</p>`;
+      ${newWordBtns ? `<div class="manage-new-words"><span class="topic-words-sub-label">Select filter words:</span><div class="topic-words-sub-tags">${newWordBtns}</div></div>` : ''}
+    </div>`;
+
+  // Subscribed topics section
+  const subsCards = _manageSubs.map((s, i) => _renderTopicCard(s, i, false)).join('');
+  const subsSection = `
+    <div class="manage-sub-section">
+      <label class="subscribe-label">Subscribed</label>
+      ${_manageSubs.length ? `<div class="manage-topic-cards">${subsCards}</div>` : '<p class="sub-no-topics">No subscribed topics yet.</p>'}
+    </div>`;
+
+  // Pending topics section
+  let pendingSection = '';
+  if (_managePendingTopics.length) {
+    const pendingCards = _managePendingTopics.map((s, i) => _renderTopicCard(s, i, true)).join('');
+    pendingSection = `
+      <div class="manage-sub-section">
+        <label class="subscribe-label">Pending <span class="manage-pending-badge">unsaved</span></label>
+        <div class="manage-topic-cards">${pendingCards}</div>
+      </div>`;
+  }
+
+  content.innerHTML = addSection + subsSection + pendingSection +
+    `<p class="sub-schedule-note">Digests generated server-side at 8am CET · Requires GitHub token in Settings</p>`;
+
+  // Restore input value and focus
+  const input = document.getElementById('manageTopicInput');
+  if (input && _manageTopicInputValue) {
+    input.value = _manageTopicInputValue;
+  }
+}
+
+function _renderTopicCard(s, idx, isPending) {
+  const isActive = _manageActiveTopicForWords === s.topic;
+  const data = _manageWordData.get(s.topic);
+  const selectedWords = data ? [...data.selectedWords] : (s.words || []);
+  const wordBadges = selectedWords.slice(0, 5).map(w =>
+    `<span class="topic-card-word">${escapeHtml(w)}</span>`).join('') +
+    (selectedWords.length > 5 ? `<span class="topic-card-word-more">+${selectedWords.length - 5}</span>` : '');
+
+  let wordPickerHtml = '';
+  if (isActive && data && data.words.length > 0) {
+    const wordBtns = data.words.slice(0, 30).map(({ word }) => {
+      const isSel = data.selectedWords.has(word);
+      return `<button class="topic-word-btn ${isSel ? 'active' : ''}" onclick="_toggleManageWord('${s.topic.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${word}')">${escapeHtml(word)}</button>`;
+    }).join('');
+    wordPickerHtml = `<div class="manage-word-picker"><div class="topic-words-sub-tags">${wordBtns}</div></div>`;
+  }
+
+  const topicEsc = s.topic.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `
+    <div class="manage-topic-card ${isActive ? 'active' : ''}">
+      <div class="manage-topic-card-header">
+        <button class="manage-topic-card-name" onclick="_selectManageTopicForWords('${topicEsc}')">${escapeHtml(s.topic)}</button>
+        <div class="manage-topic-card-words">${wordBadges || '<span class="manage-no-words">no filter words</span>'}</div>
+        <button class="manage-chip-remove" onclick="${isPending ? `_removePendingTopic(${idx})` : `_removeManageSub(${idx})`}" title="Remove">×</button>
+      </div>
+      ${wordPickerHtml}
+    </div>`;
 }
 
 function _selectManageTopicForWords(topic) {
@@ -2813,23 +2878,61 @@ function _selectManageTopicForWords(topic) {
   _renderManageSubModal();
 }
 
+function _onManageTopicInput(value) {
+  _manageTopicInputValue = value;
+  if (_manageInputTimer) clearTimeout(_manageInputTimer);
+  if (!value.trim()) {
+    _manageNewTopicData = null;
+    _manageNewTopicWords = new Set();
+    _renderManageSubModal();
+    return;
+  }
+  _manageInputTimer = setTimeout(() => {
+    const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
+    _manageNewTopicData = _buildSubTopicData(value.trim(), allPapers, null);
+    _manageNewTopicWords = new Set();
+    _renderManageSubModal();
+  }, 400);
+}
+
+function _toggleNewTopicWord(word) {
+  if (_manageNewTopicWords.has(word)) _manageNewTopicWords.delete(word);
+  else _manageNewTopicWords.add(word);
+  _renderManageSubModal();
+}
+
 function _addManageTopic() {
-  const input = document.getElementById('manageTopicInput');
-  const topic = (input?.value || '').trim();
+  const topic = _manageTopicInputValue.trim();
   if (!topic) return;
-  if (_manageSubs.find(s => s.topic === topic)) { if (input) input.value = ''; return; }
-  addTopic(topic); // also saves to userTopics
+  const allTopics = [..._manageSubs, ..._managePendingTopics].map(s => s.topic);
+  if (allTopics.includes(topic)) {
+    _manageTopicInputValue = '';
+    _manageNewTopicData = null;
+    _manageNewTopicWords = new Set();
+    _renderManageSubModal();
+    return;
+  }
+  const words = [..._manageNewTopicWords];
   const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
-  _manageSubs.push({ topic, words: [] });
-  _manageWordData.set(topic, _buildSubTopicData(topic, allPapers, null));
-  _manageActiveTopicForWords = topic;
-  if (input) input.value = '';
+  const topicData = _manageNewTopicData || _buildSubTopicData(topic, allPapers, null);
+  _manageWordData.set(topic, { words: topicData.words, selectedWords: new Set(words) });
+  _managePendingTopics.push({ topic, words });
+  _manageTopicInputValue = '';
+  _manageNewTopicData = null;
+  _manageNewTopicWords = new Set();
   _renderManageSubModal();
 }
 
 function _removeManageSub(idx) {
   const removed = _manageSubs[idx]?.topic;
   _manageSubs.splice(idx, 1);
+  if (_manageActiveTopicForWords === removed) _manageActiveTopicForWords = null;
+  _renderManageSubModal();
+}
+
+function _removePendingTopic(idx) {
+  const removed = _managePendingTopics[idx]?.topic;
+  _managePendingTopics.splice(idx, 1);
   if (_manageActiveTopicForWords === removed) _manageActiveTopicForWords = null;
   _renderManageSubModal();
 }
@@ -2843,6 +2946,12 @@ function _toggleManageWord(topic, word) {
 }
 
 async function saveSubscription() {
+  // Merge pending into subscribed
+  _managePendingTopics.forEach(p => {
+    if (!_manageSubs.find(s => s.topic === p.topic)) _manageSubs.push(p);
+  });
+  _managePendingTopics = [];
+
   _manageSubs.forEach(s => {
     const data = _manageWordData.get(s.topic);
     s.words = data ? [...data.selectedWords] : [];

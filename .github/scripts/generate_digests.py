@@ -39,7 +39,7 @@ Write a 2-sentence overview of today's research landscape.
 
 (4-5 thematic sections total)
 
-For each paper, write 3-4 sentences: what problem it addresses, the core technical approach, key results or contributions, and why it matters. Do not skip any paper.
+For each paper, write 3-4 sentences: what problem it addresses, the core technical approach, key results or contributions, and why it matters. Cite each paper using its number in square brackets, e.g. [1], [2]. Do not skip any paper.
 
 End with:
 ## Key Takeaways
@@ -188,6 +188,15 @@ def main():
                 'date': date,
                 'paperCount': len(matched),
                 'markdown': markdown,
+                'papers': [
+                    {
+                        'title': p.get('title', ''),
+                        'url': p.get('url', ''),
+                        'authors': p.get('authors', ''),
+                        'date': p.get('date', date),
+                    }
+                    for p in matched
+                ],
             })
             print(f'  Done.')
         except Exception as e:
