@@ -2716,7 +2716,7 @@ function _renderDailyDigestModal() {
       ${closeBtn}
     </div>
     <div class="daily-digest-body">
-      ${digestMarkdownToHtml(d.markdown || '')}
+      <div class="digest-article">${digestMarkdownToHtml(d.markdown || '')}</div>
       ${refsHtml ? `<div class="digest-references daily-digest-refs"><h3>References</h3><ol>${refsHtml}</ol></div>` : ''}
     </div>
     <div class="daily-digest-footer">
