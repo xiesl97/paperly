@@ -582,17 +582,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Auto-collapse nav on scroll
+  // Auto-collapse nav on scroll (hysteresis prevents oscillation: collapse at >80, expand at <20)
   let navCollapsed = false;
   window.addEventListener('scroll', () => {
     if (window.scrollY > 80 && !navCollapsed) {
       navCollapsed = true;
       document.getElementById('categoryNav')?.classList.add('nav-collapsed');
-    } else if (window.scrollY <= 80 && navCollapsed) {
+    } else if (window.scrollY < 20 && navCollapsed) {
       navCollapsed = false;
       document.getElementById('categoryNav')?.classList.remove('nav-collapsed');
     }
-  });
+  }, { passive: true });
 
   // Persist state reliably on every navigation away (covers bfcache and full-unload)
   window.addEventListener('pagehide', () => {
