@@ -2509,8 +2509,8 @@ function renderDigestViewModal() {
   const ts = new Date(digest.timestamp).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
-  const hasPrev = index < digests.length - 1;
-  const hasNext = index > 0;
+  const hasPrev = index > 0;
+  const hasNext = index < digests.length - 1;
 
   document.getElementById('digestViewContent').innerHTML = `
     <div class="digest-view-header">
@@ -2529,8 +2529,8 @@ function renderDigestViewModal() {
     <div class="digest-view-footer">
       <button class="button digest-entry-delete-btn" onclick="deletePanelDigest(${index}); closeDigestViewModal();">Delete</button>
       <div class="digest-view-nav">
-        <button class="button digest-view-nav-btn" onclick="navigateDigestView(1)" ${!hasPrev ? 'disabled' : ''} title="Previous (←)">&#8592; Prev</button>
-        <button class="button digest-view-nav-btn" onclick="navigateDigestView(-1)" ${!hasNext ? 'disabled' : ''} title="Next (→)">Next &#8594;</button>
+        <button class="button digest-view-nav-btn" onclick="navigateDigestView(-1)" ${!hasPrev ? 'disabled' : ''} title="Previous (←)">&#8592; Prev</button>
+        <button class="button digest-view-nav-btn" onclick="navigateDigestView(1)" ${!hasNext ? 'disabled' : ''} title="Next (→)">Next &#8594;</button>
       </div>
       <div style="display:flex;gap:8px;">
         <button class="button" onclick="copyPanelDigest(${index})" id="digestViewCopyBtn">Copy</button>
@@ -2561,8 +2561,8 @@ function closeDigestViewModal() {
 document.addEventListener('keydown', e => {
   const modal = document.getElementById('digestViewModal');
   if (!modal || modal.style.display === 'none') return;
-  if (e.key === 'ArrowLeft') { e.preventDefault(); navigateDigestView(1); }
-  if (e.key === 'ArrowRight') { e.preventDefault(); navigateDigestView(-1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); navigateDigestView(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); navigateDigestView(1); }
   if (e.key === 'Escape') closeDigestViewModal();
 });
 
