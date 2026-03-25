@@ -645,6 +645,45 @@ header {
   opacity: 0.7;
   font-weight: 400;
 }
+
+.topic-logic-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.topic-logic-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+
+.topic-logic-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.topic-logic-btn:hover {
+  border-color: #06b6d4;
+  color: #06b6d4;
+}
+
+.topic-logic-btn.active {
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.1);
+}
 /* ── End Topics row ──────────────────────────────────────────────── */
 
 /* Nav collapsible */

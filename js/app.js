@@ -17,6 +17,7 @@ let previousActiveAuthors = null; // 文本搜索激活时，暂存之前的作�
 let userTopics = []; // 用户自定义话题过滤标签
 let activeTopics = new Set(); // currently active topic strings (multi-select)
 let topicWordData = new Map(); // topic -> {words:[{word,count}], selectedWords:Set}
+let topicWordLogic = 'OR'; // 'OR' | 'AND' — logic between selected words across active topics
 let savedTopicSelections = new Map(); // topic -> Set of words, used to restore selections after buildTopicData
 
 function persistFilterState() {
@@ -31,6 +32,7 @@ function persistFilterState() {
       activeAuthors: [...activeAuthors],
       currentCategory,
       topicSelections,
+      topicWordLogic,
     }));
   } catch (_) {}
 }
@@ -48,6 +50,7 @@ function restoreFilterState() {
         saved.topicSelections.map(([topic, words]) => [topic, new Set(words)])
       );
     }
+    if (saved.topicWordLogic === 'AND' || saved.topicWordLogic === 'OR') topicWordLogic = saved.topicWordLogic;
   } catch (_) {}
 }
 let lunrIndex = null; // lunr search index for topic filtering
@@ -408,6 +411,27 @@ function renderTopicWordPicker() {
 
   row.style.display = 'flex';
   container.innerHTML = '';
+
+  // Logic toggle row
+  const logicRow = document.createElement('div');
+  logicRow.className = 'topic-logic-row';
+  const logicLabel = document.createElement('span');
+  logicLabel.className = 'topic-logic-label';
+  logicLabel.textContent = 'Match:';
+  logicRow.appendChild(logicLabel);
+  ['OR', 'AND'].forEach(mode => {
+    const btn = document.createElement('button');
+    btn.className = `topic-logic-btn${topicWordLogic === mode ? ' active' : ''}`;
+    btn.textContent = mode;
+    btn.addEventListener('click', () => {
+      topicWordLogic = mode;
+      persistFilterState();
+      renderTopicWordPicker();
+      renderPapers();
+    });
+    logicRow.appendChild(btn);
+  });
+  container.appendChild(logicRow);
 
   activeTopics.forEach(topic => {
     const data = topicWordData.get(topic);
@@ -1339,16 +1363,17 @@ function renderPapers() {
     });
     if (needsPickerRender) renderTopicWordPicker();
 
-    // Paper matches if it satisfies at least one active topic
+    // Paper matches based on topicWordLogic (OR: any word matches, AND: all words match)
     papers = papers.filter(p => {
       const text = [p.title, p.summary, p.details, p.motivation, p.method, p.result, p.conclusion]
         .filter(Boolean).join(' ').toLowerCase();
-      return [...activeTopics].some(topic => {
-        const data = topicWordData.get(topic);
-        if (!data) return false;
-        if (data.selectedWords.size === 0) return false; // all deselected
-        return [...data.selectedWords].some(w => text.includes(w));
-      });
+      const allWords = getAllSelectedTopicWords();
+      if (allWords.size === 0) return false;
+      if (topicWordLogic === 'AND') {
+        return [...allWords].every(w => text.includes(w));
+      } else {
+        return [...allWords].some(w => text.includes(w));
+      }
     });
   }
 
