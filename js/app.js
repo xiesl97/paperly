@@ -524,10 +524,64 @@ function removeTopic(keyword) {
 
 // ── End Topics row ───────────────────────────────────────────────────────────
 
+// ── Config-required modal ─────────────────────────────────────────────────────
+function showConfigRequiredModal(type) {
+  const overlay = document.getElementById('configRequiredModal');
+  const content = document.getElementById('configRequiredContent');
+  if (!overlay || !content) return;
+
+  if (type === 'ai') {
+    content.innerHTML = `
+      <h3>AI features need configuration</h3>
+      <p>To use AI-powered analysis and digest generation, you need to provide your API credentials in Settings.</p>
+      <div class="config-required-fields">
+        <strong>Required fields:</strong><br>
+        · AI API URL (e.g. https://api.openai.com/v1)<br>
+        · Model name (e.g. gpt-4o-mini)<br>
+        · API key
+      </div>
+      <p>Once configured, AI features will be available for generating paper summaries and research digests.</p>
+      <div class="config-required-actions">
+        <a href="settings.html">Go to Settings</a>
+      </div>`;
+  } else if (type === 'save') {
+    content.innerHTML = `
+      <h3>Saving is not available for visitors</h3>
+      <p>Persisting AI-generated content back to the data file requires a GitHub token configured in Settings.</p>
+      <p>As a visitor, AI analysis still works locally — results are shown in the paper modal but not saved to the shared dataset.</p>
+      <div class="config-required-actions">
+        <a href="settings.html">Go to Settings</a>
+      </div>`;
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function closeConfigRequiredModal() {
+  const overlay = document.getElementById('configRequiredModal');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function updateTitleBadges() {
+  const hasAI = !!localStorage.getItem('aiApiKey');
+  const hasToken = !!localStorage.getItem('githubToken');
+
+  const aiEl = document.getElementById('aiEnabledBadge');
+  if (aiEl) {
+    aiEl.classList.toggle('unconfigured', !hasAI);
+    aiEl.title = hasAI ? '' : 'AI features need configuration — click Settings to add your API key';
+  }
+
+  const visitorEl = document.getElementById('visitorBadge');
+  if (visitorEl) visitorEl.style.display = hasToken ? 'none' : '';
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
   restoreDigestState();
   updateDigestNavBtn();
   initEventListeners();
+  updateTitleBadges();
 
   fetchGitHubStats();
 
@@ -1765,7 +1819,7 @@ async function generateAiContent() {
   errEl.textContent = '';
 
   if (!apiKey) {
-    errEl.textContent = 'No API key set — please add one in Settings.';
+    showConfigRequiredModal('ai');
     return;
   }
 
@@ -1822,7 +1876,7 @@ Return valid JSON only, no markdown, no extra text.`;
 
     showPaperDetails(paper, currentPaperIndex + 1);
 
-    // Persist to data file in the background (no-op if no GitHub token)
+    // Persist to data file in the background (visitors without a GitHub token can't save)
     if (localStorage.getItem('githubToken')) {
       const saveEl = document.getElementById('aiSaveStatus');
       if (saveEl) { saveEl.textContent = 'Saving to data file…'; saveEl.className = 'ai-save-status saving'; }
@@ -1836,6 +1890,8 @@ Return valid JSON only, no markdown, no extra text.`;
           const el = document.getElementById('aiSaveStatus');
           if (el) { el.textContent = `Save failed: ${e.message}`; el.className = 'ai-save-status save-error'; }
         });
+    } else {
+      showConfigRequiredModal('save');
     }
   } catch (e) {
     btn.textContent = 'Retry Generate';
@@ -2787,7 +2843,7 @@ async function generateDigest() {
   const modelName = localStorage.getItem('aiModelName') || 'gpt-4o-mini';
 
   const errEl = document.getElementById('digestError');
-  if (!apiKey) { if (errEl) errEl.textContent = 'No API key — add one in Settings.'; return; }
+  if (!apiKey) { showConfigRequiredModal('ai'); return; }
 
   const selected = currentFilteredPapers.filter(p => !digestExcludedPapers.has(p.id));
   if (selected.length === 0) { if (errEl) errEl.textContent = 'No papers selected.'; return; }
@@ -3261,6 +3317,8 @@ async function saveSubscription() {
     } catch (e) {
       console.warn('Could not sync to data branch:', e.message);
     }
+  } else {
+    showConfigRequiredModal('save');
   }
 
   if (saveBtn) saveBtn.textContent = 'Saved!';

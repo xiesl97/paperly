@@ -81,8 +81,10 @@
                 
                 <div class="header-center">
                     <a href="index.html" class="site-logo">
-                        <img src="assets/logo2-removebg-preview.png" alt="Daily arXiv AI Enhanced Logo" class="logo-image">
-                        <span class="site-title">Daily arXiv AI Enhanced</span>
+                        <img src="assets/logo2-removebg-preview.png" alt="arxiv dashboard AI enabled Logo" class="logo-image">
+                        <span class="site-title">
+                            <span class="site-title-main">arxiv dashboard </span><span id="aiEnabledBadge" class="site-title-ai" title="">AI enabled</span>
+                        </span><span id="visitorBadge" class="visitor-badge" style="display:none">visitor</span>
                     </a>
                 </div>
                 
@@ -170,6 +172,14 @@
                 </div>
             </div>
         </header>
+
+        <!-- Config-required modal -->
+        <div id="configRequiredModal" class="config-required-overlay" style="display:none" onclick="if(event.target===this)closeConfigRequiredModal()">
+            <div class="config-required-modal">
+                <button class="config-required-close" onclick="closeConfigRequiredModal()">×</button>
+                <div id="configRequiredContent"></div>
+            </div>
+        </div>
 
         <main>
             <div class="date-picker-modal" id="datePickerModal">
