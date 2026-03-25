@@ -3112,45 +3112,42 @@ footer {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px 16px 40px;
+  padding: 8px 10px 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
 }
 
 /* Compact digest card in panel */
 .digest-compact-card {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s;
-  background: var(--card-bg-color);
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-color);
 }
-.digest-compact-card:hover {
-  background: var(--background-hover);
-  box-shadow: var(--shadow-sm);
-}
+.digest-compact-card:last-child { border-bottom: none; }
+.digest-compact-card:hover { background: var(--background-hover); }
 .digest-compact-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 3px;
 }
 .digest-compact-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin: 0 0 6px;
-  line-height: 1.4;
+  margin: 0 0 3px;
+  line-height: 1.35;
   color: var(--text-color);
 }
 .digest-compact-preview {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.45;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
