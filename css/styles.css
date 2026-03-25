@@ -3155,6 +3155,17 @@ footer {
   overflow: hidden;
 }
 
+/* Digest view modal — sits above the digests panel */
+#digestViewModal {
+  z-index: 10001;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#digestViewModal .digest-modal {
+  max-width: min(960px, 95vw);
+  max-height: 92vh;
+}
+
 /* Digest view modal layout */
 #digestViewContent {
   display: flex;
