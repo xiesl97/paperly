@@ -3235,7 +3235,7 @@ footer {
 .digests-list {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 0;
 }
 .digests-empty {
   display: flex;
