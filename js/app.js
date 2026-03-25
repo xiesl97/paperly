@@ -2416,6 +2416,124 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Saved Digests panel ────────────────────────────────────────────────────────
+
+function openDigestsPanel() {
+  const panel = document.getElementById('digestsPanel');
+  if (!panel) return;
+  renderDigestsPanel();
+  panel.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDigestsPanel() {
+  const panel = document.getElementById('digestsPanel');
+  if (panel) panel.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function renderDigestsPanel() {
+  const list = document.getElementById('digestsPanelList');
+  const countEl = document.getElementById('digestsPanelCount');
+  if (!list) return;
+
+  const digests = JSON.parse(localStorage.getItem('savedDigests') || '[]');
+  if (countEl) countEl.textContent = digests.length === 0 ? '' : `${digests.length} digest${digests.length !== 1 ? 's' : ''}`;
+
+  if (digests.length === 0) {
+    list.innerHTML = `
+      <div class="digests-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6M9 16h6M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2M7 4a2 2 0 012-2h6a2 2 0 012 2M7 4a2 2 0 000 4h10a2 2 0 000-4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="digests-empty-title">No saved digests yet</p>
+        <p class="digests-empty-sub">Generate an AI digest and save it here.</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = digests.map((digest, index) => {
+    const bodyMd = (digest.digest || '').replace(/^#\s+.+\n?\n?/, '');
+    const articleHtml = digestMarkdownToHtml(bodyMd);
+    const papers = digest.papers || [];
+    const refsHtml = papers.map((p, i) =>
+      `<li><a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener">${escapeHtml(p.title || '')}</a><br>
+       <span class="digest-ref-meta">${escapeHtml(formatAuthorsShort(p.authors))} · ${formatDate(p.date)}</span></li>`
+    ).join('');
+    const ts = new Date(digest.timestamp).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    return `
+      <article class="digest-entry" data-index="${index}">
+        <header class="digest-entry-header">
+          <div class="digest-entry-meta">
+            <time class="digest-entry-time">${ts}</time>
+            <span class="digest-entry-badge">${papers.length} paper${papers.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="digest-entry-actions">
+            <button class="button digest-entry-copy-btn" onclick="copyPanelDigest(${index})">Copy</button>
+            <button class="button digest-entry-delete-btn" onclick="deletePanelDigest(${index})">Delete</button>
+          </div>
+        </header>
+        <h1 class="digest-entry-title" id="panel-digest-title-${index}" onclick="renamePanelDigest(${index})" title="Click to rename">
+          ${escapeHtml(digest.title || 'Research Digest')}
+          <span class="digest-title-edit-hint">&#9998;</span>
+        </h1>
+        <div class="digest-article">${articleHtml}</div>
+        ${refsHtml ? `<div class="digest-references"><h3>References</h3><ol>${refsHtml}</ol></div>` : ''}
+      </article>`;
+  }).join('');
+}
+
+function deletePanelDigest(index) {
+  if (!confirm('Delete this digest? This cannot be undone.')) return;
+  const digests = JSON.parse(localStorage.getItem('savedDigests') || '[]');
+  digests.splice(index, 1);
+  localStorage.setItem('savedDigests', JSON.stringify(digests));
+  renderDigestsPanel();
+}
+
+function copyPanelDigest(index) {
+  const digests = JSON.parse(localStorage.getItem('savedDigests') || '[]');
+  const digest = digests[index];
+  if (!digest) return;
+  navigator.clipboard.writeText(digest.digest || '').then(() => {
+    const btn = document.querySelector(`.digest-entry[data-index="${index}"] .digest-entry-copy-btn`);
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); }
+  });
+}
+
+function renamePanelDigest(index) {
+  const titleEl = document.getElementById(`panel-digest-title-${index}`);
+  if (!titleEl) return;
+  const digests = JSON.parse(localStorage.getItem('savedDigests') || '[]');
+  const current = digests[index]?.title || 'Research Digest';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'digest-title-input digest-entry-title-input';
+  input.value = current;
+  titleEl.replaceWith(input);
+  input.focus();
+  input.select();
+  const commit = () => {
+    const val = input.value.trim() || current;
+    digests[index].title = val;
+    localStorage.setItem('savedDigests', JSON.stringify(digests));
+    const newEl = document.createElement('h1');
+    newEl.className = 'digest-entry-title';
+    newEl.id = `panel-digest-title-${index}`;
+    newEl.title = 'Click to rename';
+    newEl.innerHTML = `${escapeHtml(val)} <span class="digest-title-edit-hint">&#9998;</span>`;
+    newEl.onclick = () => renamePanelDigest(index);
+    input.replaceWith(newEl);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = current; input.blur(); }
+  });
+}
+
 function showDigestSetup() {
   digestView = 'setup';
   persistDigestState();
