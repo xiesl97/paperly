@@ -3205,9 +3205,9 @@ footer {
 .digest-view-nav-btn { font-size: 13px; padding: 5px 12px; }
 .digest-view-nav-btn:disabled { opacity: 0.35; cursor: default; }
 
-/* ── Subscribe modal ─────────────────────────────────────────────── */
-.subscribe-modal {
-  max-width: min(560px, 95vw);
+/* ── Subscribe / manage sub modals ───────────────────────────────── */
+.manage-sub-modal {
+  max-width: min(540px, 95vw);
   max-height: 85vh;
 }
 .subscribe-modal-body {
@@ -3217,7 +3217,7 @@ footer {
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 .subscribe-modal-footer {
   display: flex;
@@ -3227,7 +3227,7 @@ footer {
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
 }
-.subscribe-section {
+.manage-sub-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3237,16 +3237,11 @@ footer {
   font-weight: 600;
   color: var(--text-color);
 }
-.sub-topic-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 28px;
-}
 .sub-no-topics {
   font-size: 13px;
   color: var(--text-secondary);
   font-style: italic;
+  margin: 0;
 }
 .sub-schedule-note {
   font-size: 12px;
@@ -3258,11 +3253,72 @@ footer {
   border-left: 3px solid var(--primary-color);
   line-height: 1.5;
 }
+/* Subscribed topic chips */
+.manage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.manage-sub-chip {
+  display: flex;
+  align-items: center;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+.manage-chip-topic {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--text-color);
+  transition: background 0.15s;
+}
+.manage-chip-topic:hover { background: var(--background-hover); }
+.manage-chip-topic.active { background: var(--primary-color); color: #fff; }
+.manage-chip-remove {
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border-color);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.manage-chip-remove:hover { color: #e74c3c; background: #fef2f2; }
+.manage-word-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+.manage-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.manage-topic-input {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg-color);
+  color: var(--text-color);
+  font-size: 13px;
+  outline: none;
+}
+.manage-topic-input:focus { border-color: var(--primary-color); }
 
 /* ── Daily digest modal ───────────────────────────────────────────── */
 .daily-digest-modal {
-  max-width: min(860px, 95vw);
-  max-height: 92vh;
+  max-width: min(900px, 96vw);
+  max-height: 93vh;
   display: flex;
   flex-direction: column;
 }
@@ -3271,7 +3327,7 @@ footer {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 20px 24px 14px;
+  padding: 16px 24px 12px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
@@ -3281,23 +3337,44 @@ footer {
   font-weight: 700;
   color: var(--text-color);
   line-height: 1.3;
+  margin-bottom: 8px;
 }
-.daily-digest-meta {
+.daily-digest-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.daily-tab {
+  padding: 3px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: none;
+  cursor: pointer;
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  transition: all 0.15s;
 }
+.daily-tab:hover { background: var(--background-hover); color: var(--text-color); }
+.daily-tab.active { background: #6366f1; border-color: #6366f1; color: #fff; font-weight: 600; }
 .daily-digest-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 28px 24px;
+  padding: 16px 28px 24px;
+}
+.daily-digest-words {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  padding: 5px 10px;
+  background: var(--background-secondary);
+  border-radius: var(--radius-sm);
+  display: inline-block;
 }
 .daily-digest-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
+  padding: 11px 24px;
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
   gap: 8px;
@@ -3305,10 +3382,28 @@ footer {
 .daily-digest-count {
   font-size: 13px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
-.daily-digest-nav {
+.daily-manage-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+.daily-digest-empty {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 200px;
+  color: var(--text-secondary);
+}
+.digest-spinner-ring {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spinner 0.8s linear infinite;
 }
 
 /* ── Digests page ────────────────────────────────────────────────── */

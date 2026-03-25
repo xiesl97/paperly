@@ -2884,45 +2884,53 @@ function updateDigestBadges() {
   });
 }
 
-// ── Topic Subscriptions ───────────────────────────────────────────────────────
+// ── Topic Subscriptions & Daily Digest ───────────────────────────────────────
 
-let _subTopics = new Set();
-let _subTopicWordData = new Map();
+let _dailyDigests = null; // null=not fetched, []=empty, [...]=content
+let _dailyDigestIdx = 0;
+let _dailyDigestFetching = false;
+let _manageSubs = [];
+let _manageActiveTopicForWords = null;
+let _manageWordData = new Map();
 
-function openSubscribeModal() {
-  const modal = document.getElementById('subscribeModal');
+function openDailyDigestModal() {
+  const modal = document.getElementById('dailyDigestModal');
   if (!modal) return;
-
-  _subTopics = new Set();
-  _subTopicWordData = new Map();
-
-  const existing = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
-  const unsubBtn = document.getElementById('subUnsubBtn');
-  const saveBtn = document.getElementById('subSaveBtn');
-
-  if (existing.length > 0) {
-    const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
-    existing.forEach(s => {
-      _subTopics.add(s.topic);
-      _subTopicWordData.set(s.topic, _buildSubTopicData(s.topic, allPapers, s.words || null));
-    });
-    if (unsubBtn) unsubBtn.style.display = '';
-    if (saveBtn) saveBtn.textContent = 'Save';
-  } else {
-    if (unsubBtn) unsubBtn.style.display = 'none';
-    if (saveBtn) saveBtn.textContent = 'Subscribe';
-  }
-
-  _renderSubTopicButtons();
-  _renderSubWordPicker();
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  if (_dailyDigests === null && !_dailyDigestFetching) {
+    _renderDailyDigestLoading();
+    _fetchDailyDigests().then(() => _renderDailyDigestModal());
+  } else {
+    _renderDailyDigestModal();
+  }
 }
 
-function closeSubscribeModal() {
-  const modal = document.getElementById('subscribeModal');
+function closeDailyDigestModal() {
+  const modal = document.getElementById('dailyDigestModal');
   if (modal) modal.style.display = 'none';
   document.body.style.overflow = '';
+}
+
+async function _fetchDailyDigests() {
+  _dailyDigestFetching = true;
+  const subs = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
+  const today = new Date().toLocaleDateString('en-CA');
+  try {
+    const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
+    const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${dataBranch}/daily-digests/${today}.json`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) {
+      const all = await res.json();
+      const subMap = new Map(subs.map(s => [s.topic, s.words || []]));
+      _dailyDigests = all.filter(d => subMap.has(d.topic)).map(d => ({ ...d, words: subMap.get(d.topic) }));
+    } else {
+      _dailyDigests = [];
+    }
+  } catch (_) {
+    _dailyDigests = [];
+  }
+  _dailyDigestFetching = false;
 }
 
 function _buildSubTopicData(topic, papers, savedWordsList) {
@@ -2962,108 +2970,232 @@ function _buildSubTopicData(topic, papers, savedWordsList) {
   return { words, selectedWords };
 }
 
-function _renderSubTopicButtons() {
-  const container = document.getElementById('subTopicTags');
-  if (!container) return;
-  container.innerHTML = '';
-  if (userTopics.length === 0) {
-    container.innerHTML = '<span class="sub-no-topics">No topics saved yet — add topics from the filter bar first.</span>';
+function _renderDailyDigestLoading() {
+  const content = document.getElementById('dailyDigestModalContent');
+  if (!content) return;
+  const closeBtn = `<button class="digest-close-btn" onclick="closeDailyDigestModal()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>`;
+  content.innerHTML = `
+    <div class="daily-digest-header"><div class="daily-digest-label">Daily Digest</div>${closeBtn}</div>
+    <div class="daily-digest-body daily-digest-empty"><div class="digest-loading"><div class="digest-spinner-ring"></div><p style="margin:12px 0 0;color:var(--text-secondary)">Loading digest…</p></div></div>`;
+}
+
+function _renderDailyDigestModal() {
+  const content = document.getElementById('dailyDigestModalContent');
+  if (!content) return;
+
+  const subs = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
+  const today = new Date().toLocaleDateString('en-CA');
+  const formattedDate = new Date(today + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const closeBtn = `<button class="digest-close-btn" onclick="closeDailyDigestModal()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>`;
+  const manageBtn = `<button class="button daily-manage-btn" onclick="openManageSubModal()">Manage subscriptions</button>`;
+
+  if (!subs.length) {
+    content.innerHTML = `
+      <div class="daily-digest-header"><div class="daily-digest-label">Daily Digest</div>${closeBtn}</div>
+      <div class="daily-digest-body daily-digest-empty"><p style="margin:0 0 16px">No topics subscribed yet.</p>${manageBtn}</div>`;
     return;
   }
-  userTopics.forEach(topic => {
-    const btn = document.createElement('button');
-    btn.className = `topic-button ${_subTopics.has(topic) ? 'active' : ''}`;
-    btn.textContent = topic;
-    btn.addEventListener('click', () => _toggleSubTopic(topic));
-    container.appendChild(btn);
-  });
-}
 
-function _toggleSubTopic(topic) {
-  if (_subTopics.has(topic)) {
-    _subTopics.delete(topic);
-    _subTopicWordData.delete(topic);
-  } else {
-    _subTopics.add(topic);
-    const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
-    _subTopicWordData.set(topic, _buildSubTopicData(topic, allPapers, null));
+  if (!_dailyDigests?.length) {
+    const topicList = subs.map(s => s.topic).join(', ');
+    content.innerHTML = `
+      <div class="daily-digest-header"><div class="daily-digest-title-area"><div class="daily-digest-label">Daily Digest · ${formattedDate}</div></div>${closeBtn}</div>
+      <div class="daily-digest-body daily-digest-empty">
+        <p style="margin:0 0 6px;font-weight:600">Today's digest hasn't been generated yet.</p>
+        <p style="margin:0 0 18px;font-size:13px;color:var(--text-secondary)">Digests are generated at 8am CET for: ${escapeHtml(topicList)}</p>
+        ${manageBtn}
+      </div>`;
+    return;
   }
-  _renderSubTopicButtons();
-  _renderSubWordPicker();
+
+  const d = _dailyDigests[_dailyDigestIdx];
+  const total = _dailyDigests.length;
+
+  const tabs = _dailyDigests.map((dig, i) =>
+    `<button class="daily-tab ${i === _dailyDigestIdx ? 'active' : ''}" onclick="_switchDailyTab(${i})">${escapeHtml(dig.topic)}</button>`
+  ).join('');
+
+  const wordsLabel = d.words?.length ? d.words.slice(0, 6).join(' · ') : '';
+
+  content.innerHTML = `
+    <div class="daily-digest-header">
+      <div class="daily-digest-title-area">
+        <div class="daily-digest-label">Daily Digest · ${formattedDate}</div>
+        <div class="daily-digest-tabs">${tabs}</div>
+      </div>
+      ${closeBtn}
+    </div>
+    <div class="daily-digest-body">
+      ${wordsLabel ? `<div class="daily-digest-words">${escapeHtml(wordsLabel)}</div>` : ''}
+      ${digestMarkdownToHtml(d.markdown || '')}
+    </div>
+    <div class="daily-digest-footer">
+      ${manageBtn}
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        <button class="digest-view-nav-btn button" onclick="_switchDailyTab(${_dailyDigestIdx - 1})" ${_dailyDigestIdx === 0 ? 'disabled' : ''}>← Prev</button>
+        <span class="daily-digest-count">${_dailyDigestIdx + 1} / ${total}</span>
+        <button class="digest-view-nav-btn button" onclick="_switchDailyTab(${_dailyDigestIdx + 1})" ${_dailyDigestIdx === total - 1 ? 'disabled' : ''}>Next →</button>
+      </div>
+    </div>`;
+
+  document.onkeydown = (e) => {
+    if (document.getElementById('dailyDigestModal')?.style.display !== 'flex') return;
+    if (document.getElementById('manageSubModal')?.style.display === 'flex') return;
+    if (e.key === 'ArrowLeft') _switchDailyTab(_dailyDigestIdx - 1);
+    if (e.key === 'ArrowRight') _switchDailyTab(_dailyDigestIdx + 1);
+    if (e.key === 'Escape') closeDailyDigestModal();
+  };
 }
 
-function _renderSubWordPicker() {
-  const row = document.getElementById('subWordPickerRow');
-  const container = document.getElementById('subWordPickerTags');
-  if (!row || !container) return;
+function _switchDailyTab(idx) {
+  if (idx < 0 || idx >= (_dailyDigests?.length || 0)) return;
+  _dailyDigestIdx = idx;
+  _renderDailyDigestModal();
+}
 
-  if (_subTopics.size === 0) { row.style.display = 'none'; return; }
-  row.style.display = 'flex';
-  container.innerHTML = '';
+// ── Auto-show on first load ───────────────────────────────────────────────────
 
-  _subTopics.forEach(topic => {
-    const data = _subTopicWordData.get(topic);
-    if (!data || data.words.length === 0) return;
+async function checkAndShowDailyDigest() {
+  const subs = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
+  if (!subs.length) return;
+  const now = new Date();
+  const today = now.toLocaleDateString('en-CA');
+  if (localStorage.getItem('dailyDigestShownDate') === today) return;
+  if (now.getHours() < 8) return;
+  await _fetchDailyDigests();
+  if (!_dailyDigests?.length) return;
+  localStorage.setItem('dailyDigestShownDate', today);
+  const modal = document.getElementById('dailyDigestModal');
+  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  _renderDailyDigestModal();
+}
 
-    const subRow = document.createElement('div');
-    subRow.className = 'topic-words-sub-row';
-    const label = document.createElement('span');
-    label.className = 'topic-words-sub-label';
-    label.textContent = topic;
-    subRow.appendChild(label);
+// ── Manage Subscriptions modal ────────────────────────────────────────────────
 
-    const tagsDiv = document.createElement('div');
-    tagsDiv.className = 'topic-words-sub-tags';
-    data.words.forEach(({ word, count }) => {
-      const btn = document.createElement('button');
-      const isSelected = data.selectedWords.has(word);
-      btn.className = `topic-word-btn ${isSelected ? 'active' : ''}`;
-      btn.innerHTML = `${word} <span class="topic-word-count">${count}</span>`;
-      btn.addEventListener('click', () => {
-        if (data.selectedWords.has(word)) data.selectedWords.delete(word);
-        else data.selectedWords.add(word);
-        _renderSubWordPicker();
-      });
-      tagsDiv.appendChild(btn);
-    });
-    subRow.appendChild(tagsDiv);
-    container.appendChild(subRow);
+function openManageSubModal() {
+  const modal = document.getElementById('manageSubModal');
+  if (!modal) return;
+  _manageSubs = JSON.parse(JSON.stringify(JSON.parse(localStorage.getItem('topicSubscriptions') || '[]')));
+  _manageWordData = new Map();
+  _manageActiveTopicForWords = null;
+  const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
+  _manageSubs.forEach(s => {
+    _manageWordData.set(s.topic, _buildSubTopicData(s.topic, allPapers, s.words || null));
   });
+  _renderManageSubModal();
+  modal.style.display = 'flex';
+}
+
+function closeManageSubModal() {
+  const modal = document.getElementById('manageSubModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function _renderManageSubModal() {
+  const content = document.getElementById('manageSubContent');
+  if (!content) return;
+
+  const chips = _manageSubs.map((s, i) => `
+    <div class="manage-sub-chip">
+      <button class="manage-chip-topic ${_manageActiveTopicForWords === s.topic ? 'active' : ''}"
+        onclick="_selectManageTopicForWords('${s.topic.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">${escapeHtml(s.topic)}</button>
+      <button class="manage-chip-remove" onclick="_removeManageSub(${i})" title="Remove">×</button>
+    </div>`).join('');
+
+  let wordPickerHtml = '';
+  if (_manageActiveTopicForWords) {
+    const data = _manageWordData.get(_manageActiveTopicForWords);
+    if (data && data.words.length > 0) {
+      const wordBtns = data.words.map(({ word }) => {
+        const isSelected = data.selectedWords.has(word);
+        return `<button class="topic-word-btn ${isSelected ? 'active' : ''}"
+          onclick="_toggleManageWord('${_manageActiveTopicForWords.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${word}')">${escapeHtml(word)}</button>`;
+      }).join('');
+      wordPickerHtml = `<div class="manage-word-picker">
+        <span class="topic-words-sub-label">Words for "${escapeHtml(_manageActiveTopicForWords)}" (click to toggle)</span>
+        <div class="topic-words-sub-tags">${wordBtns}</div>
+      </div>`;
+    }
+  }
+
+  content.innerHTML = `
+    <div class="manage-sub-section">
+      <label class="subscribe-label">Subscribed topics ${_manageSubs.length ? `<span style="font-weight:400;color:var(--text-secondary)">(click a topic to edit its filter words)</span>` : ''}</label>
+      ${_manageSubs.length ? `<div class="manage-chips">${chips}</div>${wordPickerHtml}` : '<p class="sub-no-topics">No topics yet.</p>'}
+    </div>
+    <div class="manage-sub-section">
+      <label class="subscribe-label">Add topic</label>
+      <div class="manage-add-row">
+        <input id="manageTopicInput" type="text" class="manage-topic-input" placeholder="e.g. diffusion model"
+          onkeydown="if(event.key==='Enter')_addManageTopic()">
+        <button class="button primary" onclick="_addManageTopic()">Add</button>
+      </div>
+    </div>
+    <p class="sub-schedule-note">Digests generated server-side at 8am CET · Requires GitHub token in Settings</p>`;
+}
+
+function _selectManageTopicForWords(topic) {
+  _manageActiveTopicForWords = (_manageActiveTopicForWords === topic) ? null : topic;
+  _renderManageSubModal();
+}
+
+function _addManageTopic() {
+  const input = document.getElementById('manageTopicInput');
+  const topic = (input?.value || '').trim();
+  if (!topic) return;
+  if (_manageSubs.find(s => s.topic === topic)) { if (input) input.value = ''; return; }
+  addTopic(topic); // also saves to userTopics
+  const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
+  _manageSubs.push({ topic, words: [] });
+  _manageWordData.set(topic, _buildSubTopicData(topic, allPapers, null));
+  _manageActiveTopicForWords = topic;
+  if (input) input.value = '';
+  _renderManageSubModal();
+}
+
+function _removeManageSub(idx) {
+  const removed = _manageSubs[idx]?.topic;
+  _manageSubs.splice(idx, 1);
+  if (_manageActiveTopicForWords === removed) _manageActiveTopicForWords = null;
+  _renderManageSubModal();
+}
+
+function _toggleManageWord(topic, word) {
+  const data = _manageWordData.get(topic);
+  if (!data) return;
+  if (data.selectedWords.has(word)) data.selectedWords.delete(word);
+  else data.selectedWords.add(word);
+  _renderManageSubModal();
 }
 
 async function saveSubscription() {
-  const token = localStorage.getItem('githubToken');
-  if (!token) {
-    alert('GitHub token not set. Go to Settings → GitHub Token so the server can generate digests for your topics.');
-    return;
-  }
-
-  const subscriptions = [..._subTopics].map(topic => {
-    const data = _subTopicWordData.get(topic);
-    return { topic, words: data ? [...data.selectedWords] : [] };
+  _manageSubs.forEach(s => {
+    const data = _manageWordData.get(s.topic);
+    s.words = data ? [...data.selectedWords] : [];
   });
-  localStorage.setItem('topicSubscriptions', JSON.stringify(subscriptions));
+  localStorage.setItem('topicSubscriptions', JSON.stringify(_manageSubs));
+  _dailyDigests = null; // reset so next open refetches with updated topics
 
-  const saveBtn = document.getElementById('subSaveBtn');
+  const saveBtn = document.getElementById('manageSaveBtn');
   if (saveBtn) { saveBtn.textContent = 'Saving…'; saveBtn.disabled = true; }
 
-  try {
-    await _writeSubscriptionTopics(subscriptions.map(s => s.topic));
-    if (saveBtn) saveBtn.textContent = 'Saved!';
-    setTimeout(() => { closeSubscribeModal(); if (saveBtn) { saveBtn.textContent = 'Subscribe'; saveBtn.disabled = false; } }, 900);
-  } catch (e) {
-    alert(`Saved locally. Could not sync to data branch: ${e.message}`);
-    closeSubscribeModal();
-    if (saveBtn) { saveBtn.textContent = 'Subscribe'; saveBtn.disabled = false; }
-  }
-}
-
-function clearSubscription() {
-  if (!confirm('Remove all topic subscriptions?')) return;
-  localStorage.removeItem('topicSubscriptions');
   const token = localStorage.getItem('githubToken');
-  if (token) _writeSubscriptionTopics([]).catch(() => {});
-  closeSubscribeModal();
+  if (token) {
+    try {
+      await _writeSubscriptionTopics(_manageSubs.map(s => s.topic));
+    } catch (e) {
+      console.warn('Could not sync to data branch:', e.message);
+    }
+  }
+
+  if (saveBtn) saveBtn.textContent = 'Saved!';
+  setTimeout(() => {
+    closeManageSubModal();
+    if (saveBtn) { saveBtn.textContent = 'Save'; saveBtn.disabled = false; }
+    if (document.getElementById('dailyDigestModal')?.style.display === 'flex') {
+      _renderDailyDigestModal();
+    }
+  }, 700);
 }
 
 async function _writeSubscriptionTopics(topics) {
@@ -3081,7 +3213,6 @@ async function _writeSubscriptionTopics(topics) {
     try { existing = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(f.content.replace(/\n/g, '')), c => c.charCodeAt(0)))); } catch (_) {}
   }
 
-  // Merge with existing (other users' topics stay)
   const merged = [...new Set([...existing, ...topics])];
   const newJson = JSON.stringify(merged, null, 2);
   const encoded = new TextEncoder().encode(newJson);
@@ -3091,106 +3222,4 @@ async function _writeSubscriptionTopics(topics) {
   if (sha) body.sha = sha;
 
   const putRes = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
-  if (!putRes.ok) throw new Error(`GitHub API ${putRes.status}`);
-}
-
-// ── Daily digest auto-show ────────────────────────────────────────────────────
-
-let _currentDailyDigests = [];
-let _currentDailyDigestIdx = 0;
-
-async function checkAndShowDailyDigest() {
-  const subs = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
-  if (!subs.length) return;
-
-  const now = new Date();
-  const today = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
-
-  if (localStorage.getItem('dailyDigestShownDate') === today) return;
-  if (now.getHours() < 8) return;
-
-  const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
-  const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${dataBranch}/daily-digests/${today}.json`;
-
-  let allDigests = [];
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return; // Not generated yet — try again next load
-    allDigests = await res.json();
-  } catch (_) { return; }
-
-  const subTopicNames = new Set(subs.map(s => s.topic));
-  const mine = allDigests.filter(d => subTopicNames.has(d.topic));
-  if (!mine.length) return;
-
-  mine.forEach(d => {
-    const sub = subs.find(s => s.topic === d.topic);
-    d.words = sub?.words || [];
-  });
-
-  localStorage.setItem('dailyDigestShownDate', today);
-  _openDailyDigestModal(mine);
-}
-
-function _openDailyDigestModal(digests) {
-  _currentDailyDigests = digests;
-  _currentDailyDigestIdx = 0;
-  _renderDailyDigestModal();
-  const modal = document.getElementById('dailyDigestModal');
-  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-}
-
-function closeDailyDigestModal() {
-  const modal = document.getElementById('dailyDigestModal');
-  if (modal) modal.style.display = 'none';
-  document.body.style.overflow = '';
-}
-
-function navigateDailyDigest(delta) {
-  const next = _currentDailyDigestIdx + delta;
-  if (next < 0 || next >= _currentDailyDigests.length) return;
-  _currentDailyDigestIdx = next;
-  _renderDailyDigestModal();
-}
-
-function _renderDailyDigestModal() {
-  const content = document.getElementById('dailyDigestModalContent');
-  if (!content) return;
-
-  const d = _currentDailyDigests[_currentDailyDigestIdx];
-  const total = _currentDailyDigests.length;
-  const idx = _currentDailyDigestIdx;
-
-  const formattedDate = new Date((d.date || new Date().toLocaleDateString('en-CA')) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const wordsLabel = d.words?.length ? d.words.slice(0, 6).join(', ') : d.topic;
-  const titleLabel = `Daily Digest · ${formattedDate} · ${wordsLabel}`;
-
-  content.innerHTML = `
-    <div class="daily-digest-header">
-      <div class="daily-digest-title-area">
-        <div class="daily-digest-label">${escapeHtml(titleLabel)}</div>
-        <div class="daily-digest-meta">${d.paperCount || 0} papers · topic: ${escapeHtml(d.topic)}</div>
-      </div>
-      <button class="digest-close-btn" onclick="closeDailyDigestModal()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="daily-digest-body">
-      ${digestMarkdownToHtml(d.markdown || '')}
-    </div>
-    <div class="daily-digest-footer">
-      <span class="daily-digest-count">${idx + 1} / ${total}</span>
-      <div class="daily-digest-nav">
-        <button class="digest-view-nav-btn button" onclick="navigateDailyDigest(-1)" ${idx === 0 ? 'disabled' : ''}>← Prev</button>
-        <button class="digest-view-nav-btn button" onclick="navigateDailyDigest(1)" ${idx === total - 1 ? 'disabled' : ''}>Next →</button>
-      </div>
-    </div>`;
-
-  // Keyboard nav
-  document.onkeydown = (e) => {
-    if (document.getElementById('dailyDigestModal')?.style.display === 'none') return;
-    if (e.key === 'ArrowLeft') navigateDailyDigest(-1);
-    if (e.key === 'ArrowRight') navigateDailyDigest(1);
-    if (e.key === 'Escape') closeDailyDigestModal();
-  };
-}
+  if (!putRes.ok) throw new Error(`GitHub API ${putRes.status}`);}

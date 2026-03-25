@@ -107,7 +107,7 @@
                             <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="currentColor"/>
                         </svg>
                     </button>
-                    <button onclick="openSubscribeModal()" class="icon-button" title="Subscribe to daily digest" style="border:none;background:none;cursor:pointer;padding:4px;color:inherit;">
+                    <button onclick="openDailyDigestModal()" class="icon-button" title="Daily Digest &amp; Subscriptions" style="border:none;background:none;cursor:pointer;padding:4px;color:#6366f1;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
                         </svg>
@@ -278,38 +278,28 @@
         </div>
     </div>
 
-    <!-- Subscribe modal -->
-    <div id="subscribeModal" class="digest-modal-overlay" style="display:none;" onclick="if(event.target===this)closeSubscribeModal()">
-        <div class="digest-modal subscribe-modal">
-            <div class="digest-modal-header">
-                <h2 style="margin:0;font-size:17px;font-weight:700;">Subscribe to Daily Digest</h2>
-                <button class="digest-close-btn" onclick="closeSubscribeModal()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-                </button>
-            </div>
-            <div class="subscribe-modal-body">
-                <div class="subscribe-section">
-                    <label class="subscribe-label">Topics to track</label>
-                    <div id="subTopicTags" class="sub-topic-tags"></div>
-                </div>
-                <div id="subWordPickerRow" class="topic-word-picker-row" style="display:none;flex-direction:column;">
-                    <div id="subWordPickerTags" class="topic-word-picker-scroll"></div>
-                </div>
-                <p class="sub-schedule-note">Digests are generated server-side at 8am CET and shown on your first page visit of the day. Requires a GitHub token set in Settings.</p>
-            </div>
-            <div class="subscribe-modal-footer">
-                <button id="subUnsubBtn" onclick="clearSubscription()" class="button" style="color:#e74c3c;display:none;">Clear</button>
-                <div style="flex:1"></div>
-                <button onclick="closeSubscribeModal()" class="button">Cancel</button>
-                <button id="subSaveBtn" onclick="saveSubscription()" class="button primary">Subscribe</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Daily digest auto-show modal -->
+    <!-- Daily digest modal (bell button + auto-show) -->
     <div id="dailyDigestModal" class="digest-modal-overlay" style="display:none;" onclick="if(event.target===this)closeDailyDigestModal()">
         <div class="digest-modal daily-digest-modal">
             <div id="dailyDigestModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Manage subscriptions sub-modal -->
+    <div id="manageSubModal" class="digest-modal-overlay" style="display:none;z-index:10002;" onclick="if(event.target===this)closeManageSubModal()">
+        <div class="digest-modal manage-sub-modal">
+            <div class="digest-modal-header">
+                <h2 style="margin:0;font-size:17px;font-weight:700;">Manage Subscriptions</h2>
+                <button class="digest-close-btn" onclick="closeManageSubModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="subscribe-modal-body" id="manageSubContent"></div>
+            <div class="subscribe-modal-footer">
+                <div style="flex:1"></div>
+                <button onclick="closeManageSubModal()" class="button">Cancel</button>
+                <button id="manageSaveBtn" onclick="saveSubscription()" class="button primary">Save</button>
+            </div>
         </div>
     </div>
 
