@@ -3074,10 +3074,14 @@ async function saveSubscription() {
   }
 
   if (saveBtn) saveBtn.textContent = 'Saved!';
-  setTimeout(() => {
+  setTimeout(async () => {
     closeManageSubModal();
     if (saveBtn) { saveBtn.textContent = 'Save'; saveBtn.disabled = false; }
-    if (document.getElementById('dailyDigestModal')?.style.display === 'flex') {
+    const digestModal = document.getElementById('dailyDigestModal');
+    if (digestModal?.style.display === 'flex') {
+      // Refetch with the updated subscriptions before re-rendering
+      _renderDailyDigestLoading();
+      await _fetchDailyDigests();
       _renderDailyDigestModal();
     }
   }, 700);
