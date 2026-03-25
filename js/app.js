@@ -2915,20 +2915,30 @@ function closeDailyDigestModal() {
 async function _fetchDailyDigests() {
   _dailyDigestFetching = true;
   const subs = JSON.parse(localStorage.getItem('topicSubscriptions') || '[]');
-  const today = new Date().toLocaleDateString('en-CA');
-  try {
-    const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
-    const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${dataBranch}/daily-digests/${today}.json`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (res.ok) {
-      const all = await res.json();
-      const subMap = new Map(subs.map(s => [s.topic, s.words || []]));
-      _dailyDigests = all.filter(d => subMap.has(d.topic)).map(d => ({ ...d, words: subMap.get(d.topic) }));
-    } else {
-      _dailyDigests = [];
-    }
-  } catch (_) {
-    _dailyDigests = [];
+  const subMap = new Map(subs.map(s => [s.topic, s.words || []]));
+  const { repoOwner, repoName, dataBranch } = DATA_CONFIG;
+
+  // Try today and up to 6 previous days to find the most recent digest file
+  let all = null;
+  for (let daysBack = 0; daysBack <= 6; daysBack++) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysBack);
+    const dateStr = d.toLocaleDateString('en-CA');
+    const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${dataBranch}/daily-digests/${dateStr}.json`;
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) { all = await res.json(); break; }
+    } catch (_) {}
+  }
+
+  if (!all) { _dailyDigests = []; _dailyDigestFetching = false; return; }
+
+  // Filter to subscribed topics; if no match (or no subscriptions), show all
+  if (subMap.size > 0) {
+    const matched = all.filter(d => subMap.has(d.topic)).map(d => ({ ...d, words: subMap.get(d.topic) }));
+    _dailyDigests = matched.length > 0 ? matched : all.map(d => ({ ...d, words: [] }));
+  } else {
+    _dailyDigests = all.map(d => ({ ...d, words: [] }));
   }
   _dailyDigestFetching = false;
 }
