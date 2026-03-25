@@ -373,9 +373,7 @@ function buildTopicData(topic, papers) {
         .filter(Boolean).join(' ').toLowerCase();
       return t.includes(topicLower);
     });
-    if (matchedPapers.length > 0) {
-      words = [{ word: topicLower, count: matchedPapers.length }];
-    }
+    words = [{ word: topicLower, count: matchedPapers.length }];
   }
   // Restore saved selection if available, otherwise default to exact-match terms
   let selectedWords;
