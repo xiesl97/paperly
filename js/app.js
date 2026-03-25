@@ -2555,7 +2555,7 @@ let _dailyDigestIdx = 0;
 let _dailyDigestFetching = false;
 let _manageSubs = [];
 let _managePendingTopics = [];
-let _manageActiveTopicForWords = null;
+let _manageActiveTopicsForWords = new Set();
 let _manageWordData = new Map();
 let _manageNewTopicData = null;
 let _manageNewTopicWords = new Set();
@@ -2776,7 +2776,7 @@ function openManageSubModal() {
   _manageSubs = JSON.parse(JSON.stringify(JSON.parse(localStorage.getItem('topicSubscriptions') || '[]')));
   _managePendingTopics = [];
   _manageWordData = new Map();
-  _manageActiveTopicForWords = null;
+  _manageActiveTopicsForWords = new Set();
   _manageNewTopicData = null;
   _manageNewTopicWords = new Set();
   _manageTopicInputValue = '';
@@ -2797,12 +2797,7 @@ function _renderManageSubModal() {
   const content = document.getElementById('manageSubContent');
   if (!content) return;
 
-  // Add topic section (always at top)
-  const newWordBtns = _manageNewTopicData?.words?.slice(0, 24).map(({ word }) => {
-    const sel = _manageNewTopicWords.has(word);
-    return `<button class="topic-word-btn ${sel ? 'active' : ''}" onclick="_toggleNewTopicWord('${word.replace(/'/g, "\\'")}')">${escapeHtml(word)}</button>`;
-  }).join('') || '';
-
+  // Add topic section — word container is a stable div updated separately
   const addSection = `
     <div class="manage-sub-section">
       <label class="subscribe-label">Add topic</label>
@@ -2812,7 +2807,7 @@ function _renderManageSubModal() {
           onkeydown="if(event.key==='Enter')_addManageTopic()">
         <button class="button primary" onclick="_addManageTopic()">Add</button>
       </div>
-      ${newWordBtns ? `<div class="manage-new-words"><span class="topic-words-sub-label">Select filter words:</span><div class="topic-words-sub-tags">${newWordBtns}</div></div>` : ''}
+      <div id="manageNewWordsContainer"></div>
     </div>`;
 
   // Subscribed topics section
@@ -2853,10 +2848,13 @@ function _renderManageSubModal() {
       }
     }
   }
+
+  // Populate the stable word-suggestions container
+  _updateNewWordsContainer();
 }
 
 function _renderTopicCard(s, idx, isPending) {
-  const isActive = _manageActiveTopicForWords === s.topic;
+  const isActive = _manageActiveTopicsForWords.has(s.topic);
   const data = _manageWordData.get(s.topic);
   const selectedWords = data ? [...data.selectedWords] : (s.words || []);
   const wordBadges = selectedWords.slice(0, 5).map(w =>
@@ -2885,8 +2883,24 @@ function _renderTopicCard(s, idx, isPending) {
 }
 
 function _selectManageTopicForWords(topic) {
-  _manageActiveTopicForWords = (_manageActiveTopicForWords === topic) ? null : topic;
+  if (_manageActiveTopicsForWords.has(topic)) _manageActiveTopicsForWords.delete(topic);
+  else _manageActiveTopicsForWords.add(topic);
   _renderManageSubModal();
+}
+
+function _updateNewWordsContainer() {
+  const container = document.getElementById('manageNewWordsContainer');
+  if (!container) return;
+  const value = _manageTopicInputValue.trim();
+  if (!value) { container.innerHTML = ''; return; }
+  // Use real sub-words if available, otherwise fall back to the typed word itself
+  const words = _manageNewTopicData?.words?.slice(0, 24) || [];
+  const displayWords = words.length > 0 ? words.map(w => w.word) : [value];
+  const btns = displayWords.map(word => {
+    const sel = _manageNewTopicWords.has(word);
+    return `<button class="topic-word-btn ${sel ? 'active' : ''}" onclick="_toggleNewTopicWord('${word.replace(/'/g, "\\'")}')">${escapeHtml(word)}</button>`;
+  }).join('');
+  container.innerHTML = `<div class="manage-new-words"><span class="topic-words-sub-label">Select filter words:</span><div class="topic-words-sub-tags">${btns}</div></div>`;
 }
 
 function _onManageTopicInput(value) {
@@ -2895,21 +2909,24 @@ function _onManageTopicInput(value) {
   if (!value.trim()) {
     _manageNewTopicData = null;
     _manageNewTopicWords = new Set();
-    _renderManageSubModal();
+    _updateNewWordsContainer();
     return;
   }
+  // Show the typed word as a default chip immediately (no wait)
+  _updateNewWordsContainer();
+  // Debounce the heavier lunr sub-word search
   _manageInputTimer = setTimeout(() => {
     const allPapers = [...new Map(Object.values(paperData).flat().map(p => [p.id, p])).values()];
     _manageNewTopicData = _buildSubTopicData(value.trim(), allPapers, null);
     _manageNewTopicWords = new Set();
-    _renderManageSubModal();
+    _updateNewWordsContainer();
   }, 400);
 }
 
 function _toggleNewTopicWord(word) {
   if (_manageNewTopicWords.has(word)) _manageNewTopicWords.delete(word);
   else _manageNewTopicWords.add(word);
-  _renderManageSubModal();
+  _updateNewWordsContainer(); // only update the words container, not the whole modal
 }
 
 function _addManageTopic() {
@@ -2937,14 +2954,14 @@ function _addManageTopic() {
 function _removeManageSub(idx) {
   const removed = _manageSubs[idx]?.topic;
   _manageSubs.splice(idx, 1);
-  if (_manageActiveTopicForWords === removed) _manageActiveTopicForWords = null;
+  _manageActiveTopicsForWords.delete(removed);
   _renderManageSubModal();
 }
 
 function _removePendingTopic(idx) {
   const removed = _managePendingTopics[idx]?.topic;
   _managePendingTopics.splice(idx, 1);
-  if (_manageActiveTopicForWords === removed) _manageActiveTopicForWords = null;
+  _manageActiveTopicsForWords.delete(removed);
   _renderManageSubModal();
 }
 

@@ -3364,7 +3364,9 @@ footer {
 /* ── Subscribe / manage sub modals ───────────────────────────────── */
 .manage-sub-modal {
   max-width: min(540px, 95vw);
-  max-height: 85vh;
+  height: min(640px, 88vh);
+  display: flex;
+  flex-direction: column;
 }
 .subscribe-modal-body {
   flex: 1;
