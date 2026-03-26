@@ -3,6 +3,21 @@
 A self-hosted arXiv paper discovery and reading platform — zero infrastructure, fully automated, AI-powered. Every day, new papers are crawled, summarized, and served through GitHub Pages. No server, no database, no cost beyond your LLM API calls.
 
 **Live demo:** [li-suju.github.io/daily-arXiv-ai-enhanced](https://li-suju.github.io/daily-arXiv-ai-enhanced/)
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/bb2aae5e-1722-45ca-a0e0-6689306fffc2" />
+
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/e1e9e2fa-55fb-411f-91bd-de36c21c77fe" />
+
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/ea9f9d85-d619-4098-a0ff-da9fd790b1e4" />
+
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/9ef8b2bf-021e-4a27-82c1-56d2a9b15bcf" />
+
+
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/8776584d-5e2a-4ace-a35f-fde2c46b0d38" />
+
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/e1145cdd-26ff-47c0-94d1-242c934b609b" />
+
+
+<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/70499110-8e45-4023-a1d3-1f4a17bff250" />
 
 ---
 
