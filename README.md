@@ -3,21 +3,23 @@
 A self-hosted arXiv paper discovery and reading platform — zero infrastructure, fully automated, AI-powered. Every day, new papers are crawled, summarized, and served through GitHub Pages. No server, no database, no cost beyond your LLM API calls.
 
 **Live demo:** [Paperly](https://li-suju.github.io/paperly/index.html)
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/bb2aae5e-1722-45ca-a0e0-6689306fffc2" />
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/10724356-a20a-49a3-be16-e2de72dda961" />
 
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/e1e9e2fa-55fb-411f-91bd-de36c21c77fe" />
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/9514e610-3366-4cc2-a817-ed41ba0a4984" />
 
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/ea9f9d85-d619-4098-a0ff-da9fd790b1e4" />
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/351415ce-a272-4e8a-b148-67cb19c38ccc" />
 
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/9ef8b2bf-021e-4a27-82c1-56d2a9b15bcf" />
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/d99bb6d9-0ef4-4ab8-8248-898e9a21eae2" />
+
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/92194732-4438-4171-894c-79e6e4010340" />
+
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/d3375507-8ffd-4a14-9149-df3ebcb48665" />
+
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/4028b772-896e-449e-813b-c5164a904d87" />
+
+<img width="1348" height="757" alt="image" src="https://github.com/user-attachments/assets/8cf25cea-38f7-4287-b0aa-03e311d254b0" />
 
 
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/8776584d-5e2a-4ace-a35f-fde2c46b0d38" />
-
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/e1145cdd-26ff-47c0-94d1-242c934b609b" />
-
-
-<img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/70499110-8e45-4023-a1d3-1f4a17bff250" />
 
 ---
 
