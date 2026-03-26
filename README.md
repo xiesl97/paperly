@@ -1,8 +1,8 @@
-# daily-arXiv-ai-enhanced (Enhanced Fork)
+# Paperly
 
 A self-hosted arXiv paper discovery and reading platform — zero infrastructure, fully automated, AI-powered. Every day, new papers are crawled, summarized, and served through GitHub Pages. No server, no database, no cost beyond your LLM API calls.
 
-**Live demo:** [li-suju.github.io/daily-arXiv-ai-enhanced](https://li-suju.github.io/daily-arXiv-ai-enhanced/)
+**Live demo:** [Paperly](https://li-suju.github.io/paperly/index.html)
 <img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/bb2aae5e-1722-45ca-a0e0-6689306fffc2" />
 
 <img width="1352" height="759" alt="image" src="https://github.com/user-attachments/assets/e1e9e2fa-55fb-411f-91bd-de36c21c77fe" />
