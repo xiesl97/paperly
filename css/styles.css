@@ -196,6 +196,22 @@ header {
   background: var(--background-hover);
 }
 
+.header-date-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.header-date-nav-btn:hover {
+  color: var(--text-color);
+  background: var(--background-hover);
+}
+
 /* Floating AI Digest button */
 .ai-digest-float {
   position: fixed;

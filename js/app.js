@@ -841,6 +841,16 @@ function getDataUrlForDate(date) {
   return DATA_CONFIG.getDataUrl(`data/${date}_AI_enhanced_${lang}.jsonl`);
 }
 
+function navigateDay(direction) {
+  if (!currentDate || !availableDates.length || currentDate.includes(',') || currentDate.includes(' to ')) return;
+  const idx = availableDates.indexOf(currentDate);
+  if (idx === -1) return;
+  // availableDates is sorted newest-first, so direction=-1 goes to newer, +1 goes to older
+  const nextIdx = idx + direction;
+  if (nextIdx < 0 || nextIdx >= availableDates.length) return;
+  loadPapersByDate(availableDates[nextIdx]);
+}
+
 async function loadPapersByDate(date) {
   currentDate = date;
   document.getElementById('currentDate').textContent = formatDate(date);
