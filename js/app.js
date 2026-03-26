@@ -1657,11 +1657,12 @@ function showPaperDetails(paper, paperIndex) {
 function closeModal() {
   const modal = document.getElementById('paperModal');
   const modalBody = document.getElementById('modalBody');
-  
+
   // 重置模态框的滚动位置
   modalBody.scrollTop = 0;
-  
+
   modal.classList.remove('active');
+  modal.style.zIndex = '';
   document.body.style.overflow = '';
 }
 
@@ -2008,6 +2009,7 @@ function renderDigestModalContent() {
           <button class="button digest-copy-btn" onclick="copyDigest()">Copy</button>
         </div>
       </div>`;
+    bindDigestRefClicks(content.querySelector('.digest-modal-body'), digestState.selectedPapers);
     return;
   }
 
@@ -2182,6 +2184,7 @@ function renderDigestViewModal() {
   // Scroll body back to top on navigation
   const body = document.querySelector('#digestViewContent .digest-view-body');
   if (body) body.scrollTop = 0;
+  bindDigestRefClicks(body, papers);
 }
 
 function navigateDigestView(delta) {
@@ -2412,6 +2415,43 @@ async function generateDigest() {
       if (errElAfter) errElAfter.textContent = `Error: ${e.message}`;
     }
   }
+}
+
+// Open a paper from a digest reference click
+function openDigestPaper(paper) {
+  const idx = currentFilteredPapers.findIndex(p => p.id === paper.id || (p.url && p.url === paper.url));
+  if (idx !== -1) {
+    currentPaperIndex = idx;
+    showPaperDetails(currentFilteredPapers[idx], idx + 1);
+  } else {
+    showPaperDetails(paper, null);
+  }
+  // Raise above digest modals (z-index 9999+)
+  document.getElementById('paperModal').style.zIndex = '10500';
+}
+
+// Wire up citation and reference clicks in a rendered digest container
+function bindDigestRefClicks(container, papers) {
+  if (!container || !papers?.length) return;
+  container.addEventListener('click', e => {
+    const citeLink = e.target.closest('sup.cite a');
+    if (citeLink) {
+      e.preventDefault();
+      const n = parseInt(citeLink.textContent, 10);
+      if (!isNaN(n) && papers[n - 1]) openDigestPaper(papers[n - 1]);
+      return;
+    }
+    const refLink = e.target.closest('.digest-references li a');
+    if (refLink) {
+      e.preventDefault();
+      const li = refLink.closest('li');
+      const ol = li?.closest('ol');
+      if (ol) {
+        const idx = Array.from(ol.children).indexOf(li);
+        if (idx !== -1 && papers[idx]) openDigestPaper(papers[idx]);
+      }
+    }
+  });
 }
 
 function digestMarkdownToHtml(md) {
@@ -2697,6 +2737,8 @@ function _renderDailyDigestModal() {
         <button class="digest-view-nav-btn button" onclick="_switchDailyTab(${_dailyDigestIdx + 1})" ${_dailyDigestIdx === total - 1 ? 'disabled' : ''}>Next →</button>
       </div>
     </div>`;
+
+  bindDigestRefClicks(content.querySelector('.daily-digest-body'), d.papers);
 
   document.onkeydown = (e) => {
     if (document.getElementById('dailyDigestModal')?.style.display !== 'flex') return;

@@ -2320,8 +2320,9 @@ footer {
 .digest-article li { margin-bottom: 6px; }
 .digest-article strong { font-weight: 700; }
 .digest-article sup.cite { font-size: 10px; color: var(--primary-color); }
-.digest-article sup.cite a { color: inherit; text-decoration: none; }
+.digest-article sup.cite a { color: inherit; text-decoration: none; cursor: pointer; }
 .digest-article sup.cite a:hover { text-decoration: underline; }
+.digest-references li a { cursor: pointer; }
 
 /* References */
 .digest-references { border-top: 1px solid var(--border-color); padding-top: 16px; }
