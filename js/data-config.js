@@ -18,8 +18,8 @@ const DATA_CONFIG = {
      * GitHub repository name
      * This will be replaced during GitHub Actions workflow execution
      */
-    repoOwner: 'LI-SUJU',
-    repoName: 'daily-arXiv-ai-enhanced',
+    repoOwner: 'xiesl97',
+    repoName: 'paperly',
 
     /**
      * Data branch name
@@ -44,4 +44,3 @@ const DATA_CONFIG = {
         return `${this.getDataBaseUrl()}/${filePath}`;
     }
 };
-
