@@ -92,6 +92,30 @@ jobs:
                 ;;
         esac
         
+    - name: AI Enhance papers
+      if: steps.dedup_check.outputs.has_new_content == 'true'
+      env:
+        OPENAI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+        OPENAI_API_KEY: ${{ secrets.AI_API_KEY }}
+        MODEL_NAME: ${{ secrets.AI_MODEL }}
+        LANGUAGE: Chinese
+      run: |
+        source .venv/bin/activate
+        today=${{ steps.crawl_step.outputs.crawl_date }}
+
+        if [ -z "$OPENAI_API_KEY" ]; then
+          echo "AI_API_KEY not set, skipping AI enhancement"
+        else
+          echo "Running AI enhancement on data/${today}.jsonl..."
+          cd ai
+          python enhance.py --data "../data/${today}.jsonl" --max_workers 4
+          if [ $? -eq 0 ]; then
+            echo "AI enhancement completed"
+          else
+            echo "AI enhancement failed, will use plain data"
+          fi
+        fi
+
     - name: Convert to Markdown
       if: steps.dedup_check.outputs.has_new_content == 'true'
       run: |
@@ -102,7 +126,15 @@ jobs:
         export CATEGORIES="${{ vars.CATEGORIES }}"
 
         cd to_md
-        python convert.py --data "../data/${today}.jsonl"
+        LANGUAGE=Chinese
+        ENHANCED_FILE="../data/${today}_AI_enhanced_${LANGUAGE}.jsonl"
+        if [ -f "$ENHANCED_FILE" ]; then
+          echo "Using AI-enhanced file: $ENHANCED_FILE"
+          python convert.py --data "$ENHANCED_FILE"
+        else
+          echo "AI-enhanced file not found, using plain file"
+          python convert.py --data "../data/${today}.jsonl"
+        fi
 
         if [ $? -ne 0 ]; then
             echo "Markdown conversion failed"
